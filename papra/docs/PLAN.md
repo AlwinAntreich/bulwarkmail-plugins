@@ -65,13 +65,14 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - The end-to-end tests delete what they saved with alice's Papra session (the seeded keys have no `documents:delete`).
   - After review (screenshots in light, dark and at phone width): a spinner toast for saves from 1 MB, and one toast per save. Bulwark drops a plugin's toasts past 5 in 10 seconds, the result included; with a spinner on every save and a second toast for missing tags, the end-to-end test saw the warning dropped after a few saves. The file name in the dialog wraps instead of being cut off at phone width.
 - **The user chooses the default organisation** (decided 2026-11-08, replacing "last used"). Settings > Papra holds the default; the plugin never sets it. The dialogs preselect it, or the only organisation there is, or nothing: then Save waits for a choice, and From Papra searches only once one is picked. Switching in a dialog is for that one action. Both dialogs follow the same rule.
+- **From Papra uses Papra's search language** (decided 2026-11-08, after testing 0.1.1). The owner already searches with Papra's advanced syntax; the "Filter by tag" list was redundant. The search box goes to Papra unchanged, with an example as placeholder; quick filters (the six most-used tags, This year, Untagged) and collapsed search tips add or remove terms; a link opens Papra's guide. Chosen from three ideas (also: tokens with suggestions as you type, which needs the plugin to parse Papra's language; suggestions from the draft, which needs `compose:read`). Papra's API supports every form in its guide, but reports no errors and doesn't say how it read a query, so the plugin doesn't parse queries.
 - **Decisions taken in step 7** (2026-11-08):
   - The settings page shows the key's name and what it may do, read from `/api/api-keys/current`, so a user sees why documents are saved untagged.
   - The default organisation is kept in `api.storage`, not `settingsSchema`: a `select` there needs fixed options, and organisations come from the user's key.
   - Picked documents in From Papra are listed above the results (fix from the step 6 review).
 - **Decisions taken in step 6** (2026-11-08):
   - Several documents can be attached at once (ticked in the list), not only one: attaching a few invoices together is common, and the list already has check boxes.
-  - The tag filter is a "Filter by tag" list plus removable chips, not a click on a result's tag as planned: `ListRow` takes a text subtitle, so a tag in it can't be a button. Same Papra search either way.
+  - ~~The tag filter is a "Filter by tag" list plus removable chips.~~ Replaced after testing, see "From Papra uses Papra's search language".
   - The filter shows when the key has `tags:read`; attaching needs nothing beyond the required permissions.
   - Results show the document date when Papra has one, else when it was added; Papra sorts newest first.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
