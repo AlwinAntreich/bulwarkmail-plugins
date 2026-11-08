@@ -93,6 +93,26 @@ services:
       retries: 60
       start_period: 60s
 
+  papra:
+    image: ghcr.io/papra-hq/papra:26.7.1-rootless
+    container_name: bpt-papra
+    ports:
+      - "18012:1221"
+    volumes:
+      # SQLite database and document files.
+      - papra-data:/app/app-data
+    environment:
+      APP_BASE_URL: http://localhost:18012
+      AUTH_SECRET: bulwark-plugin-test-only-not-secret-0123456789
+      # Sign-up stays on and email verification off (Papra's defaults), so
+      # seed/seed_papra.py can create alice through the normal sign-up.
+    # The image has no curl or wget, but it has node.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:1221/api/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
   vikunja:
     image: vikunja/vikunja:2.6.0
     container_name: bpt-vikunja
@@ -169,6 +189,7 @@ volumes:
   paperless-redis:
   paperless-data:
   paperless-media:
+  papra-data:
   vikunja-db:
   vikunja-files:
   donetick-data:

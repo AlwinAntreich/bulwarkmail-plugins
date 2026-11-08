@@ -1,7 +1,7 @@
 <#
 Start the plugin test environment, wait for health and seed it.
 
-  .\up.ps1           Stalwart, Nextcloud, Paperless, Vikunja, mocks
+  .\up.ps1           Stalwart, Nextcloud, Paperless, Papra, Vikunja, mocks
   .\up.ps1 -WithAI   the same plus Ollama with a small model
 
 Safe to run again: containers are reused and the seeds are idempotent.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start the plugin test environment, wait for health and seed it.
 #
-#   ./up.sh              Stalwart, Nextcloud, Paperless, Vikunja, mocks
+#   ./up.sh              Stalwart, Nextcloud, Paperless, Papra, Vikunja, mocks
 #   ./up.sh --with-ai    the same plus Ollama with a small model
 #
 # Safe to run again: containers are reused and the seeds are idempotent.
