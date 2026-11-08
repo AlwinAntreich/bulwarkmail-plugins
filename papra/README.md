@@ -37,6 +37,9 @@ hand; you need Bulwark 1.15.0 or later and its admin password.
 5. **Update** by uploading the ZIP of the newer version the same way. The
    admin's settings, the users' connected keys and their default
    organisations stay. Removing the plugin drops the admin's settings.
+   Bulwark tabs that are already open keep running the old version until
+   they are reloaded; the admin dashboard's plugin list shows which
+   version is installed.
 
 Users can also upload the ZIP themselves in Settings > Plugins when the
 admin allows it; Bulwark then asks them to confirm the permissions, and
