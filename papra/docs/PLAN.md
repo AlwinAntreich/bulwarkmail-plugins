@@ -41,7 +41,9 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - **This check is not a security boundary.** It stops mistakes (a mistyped or phished address) and keeps documents in the admin's Papra. It does not stop a user who wants another server: the host still stores a credential for any https origin the user enters, and `/api/plugin-proxy` accepts same-origin calls from the signed-in host page, so the user can send requests through Bulwark's server to their own origin from the browser console. Mail they can read they can download anyway; what they gain is Bulwark's server as a relay. Only the host can close that: a fixed `origin` in the manifest (ties the plugin to one server), or the upstream change below.
   - **Upstream change postponed** (decided 2026-11-08): a pull request to Bulwark that lets a user-scope credential take its origin from `originKey` would move the check into the host, where it is enforced. Recorded here; not pursued now. Until then the plugin-side check stays, and the manifest keeps no fixed `origin` (that would tie the plugin to one server).
 - **One organisation at a time** (decided 2026-11-08). The user sets a default organisation in the plugin's settings and switches on demand in the "Save to Papra" and "From Papra" dialogs. No search across all organisations: Papra searches one organisation per request.
-- **Default tags set by the admin** (decided 2026-11-08), for example a tag that marks where the document came from. Documents saved from Bulwark get these tags. Details are in "Open questions for the owner"; the admin field arrives with "Save to Papra", not before.
+- **Default tags set by the admin** (decided 2026-11-08), for example a tag that marks where the document came from. Documents saved from Bulwark get these tags. The admin field arrives with "Save to Papra", not before.
+  - A default tag that doesn't exist in the target organisation is skipped, and the user is told which one (decided 2026-11-08). The plugin creates no tags, so the users' keys need no `tags:create`.
+- **Tags shown and chosen in Bulwark** (decided 2026-11-08). "From Papra" shows each result's tags (Papra's search returns them). "Save to Papra" lets the user add tags from the target organisation on top of the admin's default tags.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -95,7 +97,8 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
 
 - Credential connect flow (host dialog) and a clear "not connected" state.
 - Organisation list, default organisation in settings, per-action override.
-- Default tags from the admin on every document saved from Bulwark.
+- Default tags from the admin on every document saved from Bulwark, and tags the user picks when saving.
+- Tags shown in the "From Papra" results.
 - "Save to Papra" on attachments, with success and error notifications, and the 25 MB limit handled gracefully.
 - "Attach from Papra" in the composer: search field, result list (name, date, organisation), attach on select.
 - English and German strings, following the repository's i18n approach.
@@ -103,7 +106,7 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
 ### Not in version 1
 
 - Saving whole messages (`.eml`) to Papra.
-- Choosing tags per document, document metadata editing, sharing links.
+- Changing the tags of documents already in Papra, document metadata editing, sharing links.
 - Anything requiring Papra changes.
 
 ## Engineering standards
@@ -146,7 +149,5 @@ Status: steps 1 and 2 are done (branch `papra/scaffold`); how the plugin is buil
 
 ## Open questions for the owner
 
-- Default tags, a tag that doesn't exist in the target organisation: skip it and tell the user which one (recommended: the users' keys then need no `tags:create`), or create it?
-- Default tags need `tags:read` and `documents:update` on each user's key, and `documents:update` lets the key change any document in its organisations. Accept that, or tag only when the key allows it and otherwise save untagged with a notice (recommended: the README asks for both permissions, and a key without them still saves, with a notice)?
-- Tags in Bulwark: Papra's search results carry each document's tags (`tags` from `enrichAndFormatDocumentsForApi`), so "From Papra" can show them in the result list. Show them (recommended), and should users also choose tags when they save, on top of the admin's default tags (today "Not in version 1")?
+- Tagging (the admin's default tags and the user's own) needs `tags:read` and `documents:update` on each user's key, and `documents:update` also lets the key change the name, date, notes and extracted text of any document in its organisations, and tag or untag it (not delete it: that is `documents:delete`). Ask for both in the README and save untagged with a notice when a key lacks them (recommended), or require them?
 - Upstream: after checking the AI policy, open a pull request or keep it in the fork?
