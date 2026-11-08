@@ -1,0 +1,103 @@
+// The background side: the "Save to Papra" entry in each attachment's menu
+// and the save flow behind it. index.js wires it to the host.
+
+import { checkKey, clientFor, connect, resolveConnection } from './connection.js';
+import { PapraError, errorText, toPapraError } from './errors.js';
+import { attachmentOf, saveAttachment } from './save.js';
+import { parseTagList } from './tags.js';
+
+export const ACTION_SAVE = 'save-attachment';
+/** The organisation the user saved to last; the dialog starts with it. */
+export const ORGANIZATION_KEY = 'organizationId';
+
+const hostOf = (url) => {
+  try { return new URL(url).host; } catch { return String(url || ''); }
+};
+
+export function createBackground(api) {
+  const t = (key, vars) => api.i18n.t(key, vars);
+  const toastError = (err) => api.toast.error(errorText(t, err));
+
+  /** A connected state and what the key may do, asking the user to connect when needed; null when they don't. */
+  async function ensureConnection() {
+    let connection = await resolveConnection(api);
+    if (connection.state === 'not_configured') throw new PapraError('error.not_configured');
+    if (connection.state === 'disconnected') {
+      const host = hostOf(connection.server);
+      const message = connection.wrongServer
+        ? t('connect.wrong_server', { server: hostOf(connection.wrongServer), host })
+        : t('connect.needed', { host });
+      const go = await api.ui.confirm({ title: t('connect.title'), message, confirmLabel: t('connect.button'), cancelLabel: t('common.cancel') });
+      if (!go) return null;
+      const result = await connect(api);
+      if (!result.connected) {
+        if (result.error) throw result.error;
+        return null;
+      }
+      return { connection: result.connection, canTag: result.canTag };
+    }
+    const { missing, canTag } = await checkKey(api, connection);
+    if (missing.length) throw new PapraError('error.key_permissions', { missing: missing.join(', ') });
+    return { connection, canTag };
+  }
+
+  async function saveFlow(context) {
+    const attachment = attachmentOf(context);
+    if (!attachment) return null;
+    try {
+      const ready = await ensureConnection();
+      if (!ready) return null;
+      const { connection, canTag } = ready;
+      const config = await Promise.resolve(api.config.get()).catch(() => ({}));
+      const choice = await api.ui.openDialog({
+        title: t('dialog.title'),
+        slot: 'plugin-dialog',
+        width: 520,
+        extraProps: {
+          view: 'save',
+          attachment: { name: attachment.name, size: attachment.size },
+          connection,
+          canTag,
+          defaultTags: parseTagList(config?.defaultTags),
+          organizationId: await api.storage.get(ORGANIZATION_KEY).catch(() => null),
+        },
+      });
+      if (!choice?.organizationId) return null;
+      await api.storage.set(ORGANIZATION_KEY, choice.organizationId).catch(() => {});
+      const result = await saveAttachment({
+        api, client: clientFor(api, connection), attachment, organizationId: choice.organizationId, tagIds: canTag ? choice.tagIds || [] : [],
+      });
+      report(attachment, choice, result);
+      return result;
+    } catch (err) {
+      const e = toPapraError(err);
+      if (e.key === 'error.duplicate') api.toast.info(t('done.duplicate', { name: attachment.name }));
+      else toastError(e);
+      return null;
+    }
+  }
+
+  function report(attachment, choice, { tagError }) {
+    const vars = { name: attachment.name, organization: choice.organizationName || '' };
+    api.toast.success(t('done.saved', vars));
+    if (tagError) api.toast.warning(t('done.tag_failed', { name: attachment.name, error: errorText(t, tagError) }));
+    else if (choice.missingDefaults?.length) api.toast.warning(t('done.missing_tags', { ...vars, tags: choice.missingDefaults.join(', ') }));
+  }
+
+  /** onAction: start the flow and return at once (the host times hooks out). */
+  function onAction({ actionId, context } = {}) {
+    if (actionId === ACTION_SAVE) return saveFlow(context);
+    return null;
+  }
+
+  /** The menu entry, in the current language. */
+  async function registerUi() {
+    try {
+      await api.ui.setActions('attachment-menu', [{ id: ACTION_SAVE, label: t('action.save'), icon: 'archive' }]);
+    } catch (err) {
+      api.log?.warn?.('setting up the attachment menu failed', err?.message);
+    }
+  }
+
+  return { onAction, registerUi, saveFlow };
+}
