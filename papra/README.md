@@ -13,6 +13,40 @@ OCR and full-text search:
 The plan and the decisions are in [docs/PLAN.md](docs/PLAN.md), how it is built in
 [docs/architecture.md](docs/architecture.md).
 
+## Install without the extension directory
+
+The plugin isn't in Bulwark's extension directory yet. Install its ZIP by
+hand; you need Bulwark 1.15.0 or later and its admin password.
+
+1. **Get the ZIP.** Each release commits it as `papra/papra.zip`, tagged
+   `papra@<version>` in this repository: download it from that tag. Or
+   build it from a checkout, with Node 24:
+
+   ```
+   npm ci
+   node scripts/build.mjs papra        # writes papra/papra.zip
+   ```
+
+2. **Turn on plugins** in Bulwark's admin dashboard, if they are off.
+3. **Upload the ZIP** in the admin dashboard under Plugins, and turn it on:
+   for everyone, or for each user to turn on in Settings > Plugins. An
+   admin-installed plugin asks users for no consent.
+4. **Set it up** as below: the Papra server URL, optionally default tags,
+   and `PLUGIN_PROXY_PRIVATE_ORIGINS` when Papra is on a private network.
+   Restart Bulwark after changing its environment.
+5. **Update** by uploading the ZIP of the newer version the same way. The
+   admin's settings, the users' connected keys and their default
+   organisations stay. Removing the plugin drops the admin's settings.
+
+Users can also upload the ZIP themselves in Settings > Plugins when the
+admin allows it; Bulwark then asks them to confirm the permissions, and
+may wait for the admin's approval. A user upload still needs the admin's
+Papra server URL.
+
+For development, start Bulwark from its source with `PLUGIN_DEV_DIR`
+pointing at a checkout of this repository: it builds the plugin from
+`papra/src` on each page load (see [WRITING_PLUGINS.md](../WRITING_PLUGINS.md#quick-start)).
+
 ## Setup for the admin
 
 1. Install the plugin and set **Papra server URL** on its page in the admin
