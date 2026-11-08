@@ -147,6 +147,41 @@ test.describe('papra plugin', () => {
     }
   });
 
+  test('attaches documents from Papra to a new message, found by search and tag', async ({ page }) => {
+    await preparePage(page);
+    await signIn(page);
+    await waitForPlugin(page, PLUGIN);
+    await disconnect(page);
+    try {
+      await page.getByRole('button', { name: 'Compose' }).first().click();
+      await page.getByTestId('composer-attach-menu').click();
+      await page.getByRole('menuitem', { name: 'From Papra' }).click();
+      await connectKey(page);
+      const picker = page.frameLocator(SLOT).last();
+      await expect(picker.getByText('3 documents')).toBeVisible();
+
+      // Tag filter: only the invoice.
+      await picker.getByLabel('Filter by tag').selectOption('Invoice');
+      await expect(picker.getByText('1 document', { exact: true })).toBeVisible();
+      await picker.getByRole('button', { name: 'Remove filter Invoice' }).click();
+
+      // Full-text search: the contract, by a word in its text.
+      await picker.getByRole('searchbox', { name: 'Search documents' }).fill('Valid');
+      await expect(picker.getByText('hosting-contract.pdf')).toBeVisible();
+      await expect(picker.getByText('acme-invoice-2026-10.pdf')).toHaveCount(0);
+      await picker.getByText('hosting-contract.pdf').click();
+      await picker.getByRole('searchbox', { name: 'Search documents' }).fill('');
+      await picker.getByText('acme-invoice-2026-10.pdf').click();
+      await footerButton(page, 'Attach 2').click();
+
+      await expect(toast(page, 'Attached 2 documents from Papra.')).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText('hosting-contract.pdf').first()).toBeVisible();
+      await expect(page.getByText('acme-invoice-2026-10.pdf').first()).toBeVisible();
+    } finally {
+      await disconnect(page).catch(() => {});
+    }
+  });
+
   test('saves untagged with a key that can\'t tag, and says so in the dialog', async ({ page }) => {
     const run = `Papra e2e notags ${Date.now()}`;
     sendMail(run, `${run}.pdf`);
