@@ -55,12 +55,22 @@ pointing at a checkout of this repository: it builds the plugin from
    saved from Bulwark gets them. Create these tags in each Papra
    organisation; the plugin creates no tags, and skips one an organisation
    doesn't have (the user is told).
-3. If Papra is on a private network, Bulwark's plugin proxy has to be
-   allowed to reach it. Add its origin to Bulwark's environment:
+3. Only if Papra's address resolves to a private one from the Bulwark
+   server (a LAN or VPN address such as `10.x`, `192.168.x`, or
+   `localhost`): Bulwark's plugin proxy refuses private addresses unless
+   the admin lists the origin. Add it to Bulwark's environment and restart
+   Bulwark:
 
    ```
    PLUGIN_PROXY_PRIVATE_ORIGINS=https://papra.example.com
    ```
+
+   This is a Bulwark setting, not a Papra one: a comma-separated list for
+   all plugins, compared by exact origin (scheme, host and port). Any
+   plugin whose user connects an account to that origin may then reach it,
+   so list only what you mean to. Check what the name resolves to on the
+   Bulwark server, for example with `getent hosts papra.example.com`; a
+   public address needs no entry.
 
 ## Setup for users
 
