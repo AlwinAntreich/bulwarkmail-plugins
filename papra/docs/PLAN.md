@@ -146,6 +146,10 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
 - Saving whole messages (`.eml`) to Papra.
 - Changing the tags of documents already in Papra, document metadata editing, sharing links.
 - Anything requiring Papra changes.
+- Papra in Bulwark's Files view (postponed, 2026-11-08: get comfortable with the current plugin first). "Save to Papra" in a file's menu (`file-actions`, `ui:files`) and saving a Papra document into Files both need Bulwark changes, proposed upstream when the time comes:
+  - reading a file's bytes: an `api.files.getFile(fileId)` → `{ name, type, size, data }` under `files:read`, like `api.email.getAttachment`. Today `api.files` only returns extracted text (`getText`) and pictures (`getImage`), and `api.jmap.fetchBlob` is for the privileged tier only;
+  - writing a binary file: `api.files.create` only takes Markdown and plain text up to 512 KB.
+  - Not chosen: downloading through Stalwart's WebDAV with a second user credential (each user's Stalwart password or app password, a WebDAV address from the admin, path mapping), as the Nextcloud plugin does over WebDAV.
 
 ## Engineering standards
 
