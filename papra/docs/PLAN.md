@@ -165,7 +165,7 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 ## Work plan
 
-Status: steps 1 to 7 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`, `papra/save`, `papra/attach`, `papra/settings`); how the plugin is built so far is in [architecture.md](architecture.md).
+Status: steps 1 to 9 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`, `papra/save`, `papra/attach`, `papra/settings`, `papra/release-prep`), except what the definition of done says below; how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
@@ -174,8 +174,10 @@ Status: steps 1 to 7 are done (branches `papra/scaffold`, `papra/test-env`, `pap
 5. "Save to Papra" on attachments, with tests. Done: unit tests, a jsdom test of the dialog, and end-to-end tests that pass against the test webmail (run with `bypassCSP`, see "A webmail for testing").
 6. "Attach from Papra" in the composer, with tests. Done: unit tests, a jsdom test of the dialog, an end-to-end test against the test webmail; screenshots in light, dark and at phone width reviewed.
 7. Settings section: connection state, default organisation. Done, with unit tests, a jsdom test and an end-to-end test; screenshots reviewed.
-8. i18n (en, de), README (setup incl. `PLUGIN_PROXY_PRIVATE_ORIGINS` and Papra API key creation), CHANGELOG, media, built ZIP.
-9. Run all repository checks; fix everything they report.
+8. i18n (en, de), README (setup incl. `PLUGIN_PROXY_PRIVATE_ORIGINS` and Papra API key creation), CHANGELOG, media, built ZIP. Done, except the ZIP: `papra.zip` is built and committed by `npm run release`, like every plugin's. The CHANGELOG's Unreleased section holds the notes for the first version.
+9. Run all repository checks; fix everything they report. Done (2026-11-08): `npm run check` ok; `npm test` 2496 passed; `npm run build:isolated` builds papra (45.6 KB); the end-to-end tests (4) pass against the test webmail. Two checks report what this work didn't cause and didn't fix:
+   - `npm run build:check`: `papra.zip` is missing until the release builds it; `smime.zip` is stale on `main` already.
+   - `npm run docs:check` against the webmail's current `main`: `WRITING_PLUGINS.md` is 13 lines behind the webmail's catalogue. The Papra branches don't touch it; refreshing it is a change of its own.
 
 ## Definition of done
 
@@ -183,6 +185,12 @@ Status: steps 1 to 7 are done (branches `papra/scaffold`, `papra/test-env`, `pap
 - The plugin installs in a current Bulwark, connects with a user's Papra key, saves an attachment to a chosen organisation, and attaches a searched document to a draft.
 - README explains installation, the required Bulwark environment variable, and the Papra key permissions.
 - No secret ever stored in plugin settings, storage or logs.
+
+## Before the first release
+
+- Decide whether to publish to the extension directory: move `papra` from `skip` to `publish` in `publish.json`, and a directory admin adds the trusted publisher (see the root README, "Releasing").
+- Merge the branches into the fork's `main`, then `npm run release -- papra 0.1.0` (or `1.0.0`), which builds `papra.zip`, sets the versions and tags.
+- Try it once in a production-like Bulwark (https Stalwart, no `bypassCSP`), with the real Papra at `https://papra.antreich.com` and `PLUGIN_PROXY_PRIVATE_ORIGINS` set: the test webmail here runs with the browser's CSP switched off.
 
 ## Open questions for the owner
 

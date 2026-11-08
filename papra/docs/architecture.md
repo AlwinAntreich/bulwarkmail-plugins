@@ -40,6 +40,7 @@ describes the implementation and changes with it.
 | `README.md` | setup for admins and users |
 | `CHANGELOG.md` | written by `npm run changelog` at release time |
 | `docs/` | the plan and this file |
+| `media/` | icon, banner and the screenshots the manifest lists (taken from `test-env/`) |
 
 ## Server and API key
 
