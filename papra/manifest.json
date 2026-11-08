@@ -16,6 +16,13 @@
   ],
   "entrypoint": "index.js",
   "minAppVersion": "1.15.0",
+  "icon": "media/icon.svg",
+  "banner": "media/banner.svg",
+  "screenshots": [
+    "media/screenshots/1-save.webp",
+    "media/screenshots/2-attach-dark.webp",
+    "media/screenshots/3-settings.webp"
+  ],
   "configSchema": {
     "serverUrl": {
       "type": "string",

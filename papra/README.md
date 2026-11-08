@@ -8,6 +8,8 @@ OCR and full-text search:
 - **From Papra:** search Papra from the composer, filter by tag and attach
   documents to the message.
 
+![Save to Papra](media/screenshots/1-save.webp)
+
 The plan and the decisions are in [docs/PLAN.md](docs/PLAN.md), how it is built in
 [docs/architecture.md](docs/architecture.md).
 
@@ -63,6 +65,9 @@ Writing a message, open **Attach** and choose **From Papra**. Search by
 words in a document's name or text, narrow the list with **Filter by tag**
 (several tags must all match), tick the documents and press **Attach**. Picked documents stay listed
 above the results while you search on.
+
+![Attach from Papra, dark theme](media/screenshots/2-attach-dark.webp)
+![Settings > Papra](media/screenshots/3-settings.webp)
 Each result shows its tags. Documents over 25 MB can't be attached this
 way.
 
