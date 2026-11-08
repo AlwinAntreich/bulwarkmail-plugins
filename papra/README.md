@@ -5,7 +5,7 @@ OCR and full-text search:
 
 - **Save to Papra:** save an attachment as a document in one of your Papra
   organisations, with tags.
-- **From Papra:** search Papra from the composer, filter by tag and attach
+- **From Papra:** search Papra from the composer with its full search language and attach
   documents to the message.
 
 ![Save to Papra](media/screenshots/1-save.webp)
@@ -105,10 +105,15 @@ the organisation and any tags; the admin's default tags are already
 ticked. Bulwark reads attachments up to
 25 MB. If Papra already has the file, you are told so.
 
-Writing a message, open **Attach** and choose **From Papra**. Search by
-words in a document's name or text, narrow the list with **Filter by tag**
-(several tags must all match), tick the documents and press **Attach**. Picked documents stay listed
-above the results while you search on.
+Writing a message, open **Attach** and choose **From Papra**. The search
+box takes Papra's search language as is: words, `tag:invoice`,
+`name:offer`, `content:"order 4711"`, `date:>=2026`, `-tag:archived`,
+`(tag:a OR tag:b)` and more ([Papra's guide](https://docs.papra.app/guides/advanced-search/)).
+The quick filters under it (your organisation's most-used tags, Added this
+year, Untagged) add a term to the search or take it out again, and **Search
+tips** lists common forms to click. Tick the documents and press
+**Attach**; picked documents stay listed above the results while you
+search on.
 
 ![Attach from Papra, dark theme](media/screenshots/2-attach-dark.webp)
 ![Settings > Papra](media/screenshots/3-settings.webp)

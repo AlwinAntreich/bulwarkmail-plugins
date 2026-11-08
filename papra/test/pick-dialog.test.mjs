@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import * as React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { PickDialog } from '../src/ui/PickDialog.jsx';
+import { PickDialog, SEARCH_GUIDE_URL } from '../src/ui/PickDialog.jsx';
 import { MAX_DOCUMENT_BYTES } from '../src/lib/attach.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -15,7 +15,7 @@ afterEach(cleanup);
 const manifest = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'manifest.json'), 'utf8'));
 const SERVER = 'https://papra.example.com';
 const ORGS = { organizations: [{ id: 'org_t', name: 'Team' }, { id: 'org_a', name: 'Alice' }] };
-const TAGS = { tags: [{ id: 'a1', name: 'Invoice' }, { id: 'a2', name: 'Tax 2025' }] };
+const TAGS = { tags: [{ id: 'a1', name: 'Invoice', documentsCount: 3 }, { id: 'a2', name: 'Tax 2025', documentsCount: 9 }, { id: 'a3', name: 'Unused', documentsCount: 0 }] };
 const doc = (id, name, extra = {}) => ({ id, name, mimeType: 'application/pdf', originalSize: 2048, createdAt: '2026-10-01T10:00:00Z', tags: [], ...extra });
 const ALICE = [doc('d1', 'acme-invoice.pdf', { tags: [{ id: 'a1', name: 'Invoice' }] }), doc('d2', 'contract.pdf'), doc('d3', 'scan.tiff', { originalSize: MAX_DOCUMENT_BYTES + 1 })];
 
@@ -111,13 +111,43 @@ describe('PickDialog', () => {
     await waitFor(() => expect(screen.queryByText('acme-invoice.pdf')).toBeNull());
   });
 
-  it('filters by tag with Papra\'s tag: syntax, and drops the filter again', async () => {
+  it('passes the search to Papra as typed, in Papra\'s own syntax', async () => {
     const { searches } = await open();
-    const filter = screen.getAllByRole('combobox').at(-1);
-    await act(async () => { fireEvent.change(filter, { target: { value: 'Tax 2025' } }); });
-    await waitFor(() => expect(searches.at(-1).searchQuery).toBe('tag:"Tax 2025"'));
-    await press(screen.getByRole('button', { name: 'Remove filter Tax 2025' }));
-    await waitFor(() => expect(searches.at(-1).searchQuery).toBe(''));
+    await act(async () => { fireEvent.change(screen.getByRole('searchbox', { name: 'Search documents' }), { target: { value: '(tag:car OR tag:insurance) -has:date' } }); });
+    await waitFor(() => expect(searches.at(-1).searchQuery).toBe('(tag:car OR tag:insurance) -has:date'));
+  });
+
+  it('offers the most-used tags as quick filters that add and remove a term', async () => {
+    const { searches } = await open();
+    const chips = screen.getByRole('group', { name: 'Quick filters' });
+    expect([...chips.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Tax 20259', 'Invoice3', 'Added this year', 'Untagged']);
+    const search = screen.getByRole('searchbox', { name: 'Search documents' });
+    await act(async () => { fireEvent.change(search, { target: { value: 'acme' } }); });
+    await press(screen.getByTitle('Add tag:"Tax 2025" to the search'));
+    expect(search.value).toBe('acme tag:"Tax 2025"');
+    await waitFor(() => expect(searches.at(-1).searchQuery).toBe('acme tag:"Tax 2025"'));
+    await press(screen.getByTitle('Remove tag:"Tax 2025" from the search'));
+    expect(search.value).toBe('acme');
+    await press(screen.getByTitle('Add -has:tags to the search'));
+    expect(search.value).toBe('acme -has:tags');
+    await press(screen.getByTitle(`Add created:>=${new Date().getFullYear()} to the search`));
+    expect(search.value).toBe(`acme -has:tags created:>=${new Date().getFullYear()}`);
+  });
+
+  it('shows search tips that add a term, and links to Papra\'s guide', async () => {
+    const { api } = await open();
+    expect(screen.queryByText('name:offer')).toBeNull();
+    await press(screen.getByRole('button', { name: 'Search tips' }));
+    await press(screen.getByRole('button', { name: 'name:offer' }));
+    expect(screen.getByRole('searchbox', { name: 'Search documents' }).value).toBe('name:offer');
+    await press(screen.getByRole('button', { name: "All search options in Papra's guide" }));
+    expect(api.calls('ui.openExternalUrl')[0].args).toEqual([SEARCH_GUIDE_URL]);
+  });
+
+  it('says to check the filters when a search with filters finds nothing', async () => {
+    await open();
+    await act(async () => { fireEvent.change(screen.getByRole('searchbox', { name: 'Search documents' }), { target: { value: 'nothing date:>=garbage' } }); });
+    await screen.findByText(/^No documents found\. Check the filters in your search/);
   });
 
   it('loads more when there are more results', async () => {
@@ -134,9 +164,9 @@ describe('PickDialog', () => {
     expect(screen.getByRole('button', { name: 'Attach' }).disabled).toBe(true);
   });
 
-  it('offers no tag filter when the key can\'t read tags', async () => {
+  it('offers no tag chips when the key can\'t read tags', async () => {
     const { api } = await open({ canReadTags: false });
-    expect(screen.queryByText('Filter by tag')).toBeNull();
+    expect([...screen.getByRole('group', { name: 'Quick filters' }).querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Added this year', 'Untagged']);
     expect(api.calls('proxy.fetch').some((c) => c.args[1].endsWith('/tags'))).toBe(false);
   });
 });

@@ -1,18 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Chip, DialogButtons, Field, LinkButton, List, ListRow, Row, SearchInput, Select, Spinner, Stack, Text } from '@plugin-host/ui';
+import { Alert, Chip, DialogButtons, Field, Input, LinkButton, List, ListRow, Row, Select, Spinner, Stack, Text } from '@plugin-host/ui';
 import { getApi, formatSize } from './host.js';
 import { clientFor } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
 import { MAX_DOCUMENT_BYTES } from '../lib/attach.js';
 import { organizationOptions, preselect } from './organizations.js';
+import { hasFilter, hasTerm, tagTerm, toggleTerm } from './query.js';
 
 export const SEARCH_DELAY_MS = 300;
+export const QUICK_TAGS = 6;
+export const SEARCH_GUIDE_URL = 'https://docs.papra.app/guides/advanced-search/';
 const PAGE = 25;
 
+/** Common forms of Papra's search language, shown under "Search tips"; a click adds the term to the search. */
+export function searchTips(year) {
+  return [
+    ['tag:invoice', 'pick.tip_tag'],
+    ['name:offer', 'pick.tip_name'],
+    ['content:"order 4711"', 'pick.tip_content'],
+    [`date:>=${year}-01`, 'pick.tip_date'],
+    [`created:<${year}`, 'pick.tip_created'],
+    ['-tag:archived', 'pick.tip_not'],
+    ['(tag:invoice OR tag:receipt)', 'pick.tip_or'],
+    ['-has:tags', 'pick.tip_untagged'],
+  ];
+}
+
 /**
- * The "Attach from Papra" dialog: one organisation at a time, full-text
- * search, tag filters (Papra's `tag:` search), each result with its tags.
- * Hands the picked documents back with onResult; the background attaches them.
+ * The "Attach from Papra" dialog: one organisation at a time, searched with
+ * Papra's own search language, which the search box passes on unchanged.
+ * Quick filters (the most-used tags, this year, untagged) and search tips
+ * add or remove terms in it. Each result shows its tags. Hands the picked
+ * documents back with onResult; the background attaches them.
  */
 export function PickDialog({ api = getApi(), connection, canReadTags = false, organizationId = null, onResult }) {
   const t = (key, vars) => api.i18n.t(key, vars);
@@ -21,8 +40,8 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
   const [selected, setSelected] = useState(null);
   const [text, setText] = useState('');
   const [query, setQuery] = useState('');
-  const [tagFilters, setTagFilters] = useState([]);
   const [orgTags, setOrgTags] = useState([]);
+  const [tipsOpen, setTipsOpen] = useState(false);
   const [results, setResults] = useState(null);
   const [page, setPage] = useState(0);
   const [picked, setPicked] = useState(() => new Map());
@@ -42,12 +61,11 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
 
   // A new organisation starts from scratch: its own tags, nothing picked.
   useEffect(() => {
-    setTagFilters([]);
     setPicked(new Map());
     setOrgTags([]);
     if (!selected || !canReadTags) return undefined;
     let cancelled = false;
-    client.tags(selected).then((list) => { if (!cancelled) setOrgTags(list); }, () => { /* filtering by tag is a help; search still works */ });
+    client.tags(selected).then((list) => { if (!cancelled) setOrgTags(list); }, () => { /* the tag chips are a help; search still works */ });
     return () => { cancelled = true; };
   }, [client, selected, canReadTags]);
 
@@ -57,27 +75,31 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
   }, [text]);
 
   // Search from the first page whenever what is searched for changes.
-  useEffect(() => { setPage(0); }, [selected, query, tagFilters]);
+  useEffect(() => { setPage(0); }, [selected, query]);
 
   useEffect(() => {
     if (!selected) return undefined;
     let cancelled = false;
     setError(null);
     if (page === 0) setResults(null);
-    client.searchDocuments(selected, { text: query, tags: tagFilters }, page, PAGE).then((found) => {
+    client.searchDocuments(selected, { text: query }, page, PAGE).then((found) => {
       if (cancelled) return;
       setResults((prev) => (page === 0 || !prev ? found : { count: found.count, documents: [...prev.documents, ...found.documents] }));
     }, (err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
-  }, [client, selected, query, tagFilters, page, attempt]);
+  }, [client, selected, query, page, attempt]);
 
   const toggle = (doc) => setPicked((prev) => {
     const next = new Map(prev);
     if (next.has(doc.id)) next.delete(doc.id); else next.set(doc.id, doc);
     return next;
   });
-  const addTag = (name) => { if (name && !tagFilters.includes(name)) setTagFilters([...tagFilters, name]); };
-  const removeTag = (name) => setTagFilters(tagFilters.filter((n) => n !== name));
+  // Quick filters and tips change the text at once; no need to wait for the pause.
+  const toggleQuery = (term) => {
+    const next = toggleTerm(text, term);
+    setText(next);
+    setQuery(next.trim());
+  };
 
   const date = (doc) => {
     const value = doc.documentDate || doc.createdAt;
@@ -97,7 +119,14 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
     { id: 'attach', label: picked.size > 1 ? t('pick.button_count', { count: picked.size }) : t('pick.button'), variant: 'primary', disabled: !picked.size },
   ];
 
-  const unusedTags = orgTags.filter((tag) => !tagFilters.includes(tag.name));
+  const year = new Date().getFullYear();
+  const quick = [
+    ...[...orgTags].filter((tag) => tag.count > 0).sort((a, b) => b.count - a.count).slice(0, QUICK_TAGS)
+      .map((tag) => ({ key: tag.id, label: tag.name, detail: String(tag.count), term: tagTerm(tag.name) })),
+    // Added this year: many documents have no document date, so date: would miss them.
+    { key: 'year', label: t('pick.added_this_year'), term: `created:>=${year}` },
+    { key: 'untagged', label: t('pick.untagged'), term: '-has:tags' },
+  ];
 
   return (
     <Stack gap={4}>
@@ -116,20 +145,40 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
       )}
       {selected && (
         <>
-          <SearchInput value={text} onChange={setText} label={t('pick.search')} placeholder={t('pick.search_placeholder')} />
-          {canReadTags && unusedTags.length > 0 && (
-            <Field label={t('pick.tag_filter')}>
-              <Select block value="" onChange={addTag}
-                options={[{ value: '', label: t('pick.tag_any') }, ...unusedTags.map((tag) => ({ value: tag.name, label: tag.name }))]} />
-            </Field>
-          )}
-          {tagFilters.length > 0 && (
-            <div role="group" aria-label={t('pick.tag_filter')}>
-              <Row gap={2}>
-                {tagFilters.map((name) => (
-                  <Chip key={name} label={name} onRemove={() => removeTag(name)} removeLabel={t('pick.remove_tag', { tag: name })} />
+          <Field label={t('pick.search')}>
+            <Input type="search" value={text} placeholder={t('pick.search_placeholder', { year })} autoComplete="off" spellCheck={false}
+              onChange={(e) => setText(e.target.value)} />
+          </Field>
+          <div role="group" aria-label={t('pick.quick')}>
+            <Row gap={2}>
+              {quick.map((q) => {
+                const on = hasTerm(text, q.term);
+                return (
+                  <Chip key={q.key} label={on ? `✓ ${q.label}` : q.label} detail={q.detail}
+                    title={on ? t('pick.quick_remove', { term: q.term }) : t('pick.quick_add', { term: q.term })}
+                    onClick={() => toggleQuery(q.term)} />
+                );
+              })}
+            </Row>
+          </div>
+          <div>
+            <LinkButton icon={tipsOpen ? 'chevron-down' : 'chevron-right'} onClick={() => setTipsOpen((v) => !v)}>
+              {tipsOpen ? t('pick.tips_hide') : t('pick.tips')}
+            </LinkButton>
+          </div>
+          {tipsOpen && (
+            <div role="group" aria-label={t('pick.tips')}>
+              <Stack gap={1}>
+                {searchTips(year).map(([term, key]) => (
+                  <Row key={term} gap={2}>
+                    <LinkButton onClick={() => toggleQuery(term)}>{term}</LinkButton>
+                    <Text tone="muted">{t(key)}</Text>
+                  </Row>
                 ))}
-              </Row>
+                <div>
+                  <LinkButton icon="external-link" onClick={() => { void api.ui.openExternalUrl(SEARCH_GUIDE_URL); }}>{t('pick.tips_more')}</LinkButton>
+                </div>
+              </Stack>
             </div>
           )}
           {picked.size > 0 && (
@@ -145,7 +194,7 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
             </div>
           )}
           {!results && !error && <Spinner size="sm" label={t('common.loading')} />}
-          {results && results.documents.length === 0 && <Text tone="muted">{t('pick.none')}</Text>}
+          {results && results.documents.length === 0 && <Text tone="muted">{hasFilter(query) ? t('pick.none_filters') : t('pick.none')}</Text>}
           {results && results.documents.length > 0 && (
             <>
               <Text tone="muted">{results.count === 1 ? t('pick.count_one') : t('pick.count', { count: results.count })}</Text>

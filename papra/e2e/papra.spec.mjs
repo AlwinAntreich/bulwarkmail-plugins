@@ -124,7 +124,7 @@ test.describe('papra plugin', () => {
       await expect(dialog.getByRole('checkbox', { name: 'Bulwark' })).toBeChecked();
       await dialog.getByRole('checkbox', { name: 'Invoice' }).click();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${pdfName} to Alice in Papra.`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${pdfName} to Alice in Papra (tags: Bulwark, Invoice).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
       expect(doc.tags.map((t) => t.name).sort()).toEqual(['Bulwark', 'Invoice']);
@@ -142,7 +142,7 @@ test.describe('papra plugin', () => {
       await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Team);
       await expect(dialog.getByText('Not added, Team has no such tag: Bulwark')).toBeVisible();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${run} team.pdf to Team in Papra, without the tag Bulwark: Team has no such tag.`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${run} team.pdf to Team in Papra. Default tags left out, Team doesn’t have them: Bulwark`)).toBeVisible({ timeout: 60_000 });
     } finally {
       for (const org of ['Alice', 'Team']) {
         for (const doc of await findDocs(org, run).catch(() => [])) await deleteDoc(org, doc.id).catch(() => {});
@@ -165,10 +165,15 @@ test.describe('papra plugin', () => {
       await picker.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await expect(picker.getByText('3 documents')).toBeVisible();
 
-      // Tag filter: only the invoice.
-      await picker.getByLabel('Filter by tag').selectOption('Invoice');
+      // Quick filter: only the invoice; the term shows in the search box.
+      await picker.getByTitle('Add tag:"Invoice" to the search').click();
+      await expect(picker.getByRole('searchbox', { name: 'Search documents' })).toHaveValue('tag:"Invoice"');
       await expect(picker.getByText('1 document', { exact: true })).toBeVisible();
-      await picker.getByRole('button', { name: 'Remove filter Invoice' }).click();
+      await picker.getByTitle('Remove tag:"Invoice" from the search').click();
+
+      // Papra's own syntax, typed: either tag.
+      await picker.getByRole('searchbox', { name: 'Search documents' }).fill('tag:invoice OR tag:contract');
+      await expect(picker.getByText('2 documents', { exact: true })).toBeVisible();
 
       // Full-text search: the contract, by a word in its text.
       await picker.getByRole('searchbox', { name: 'Search documents' }).fill('Valid');

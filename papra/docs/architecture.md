@@ -106,10 +106,9 @@ checks the key with `GET /api/api-keys/current` (needs no permission):
 | `tagDocument(org, doc, tag)` | `POST /api/organizations/:org/documents/:doc/tags` | `documents:update`, `tags:read` |
 | `download(org, doc)` | `GET /api/organizations/:org/documents/:doc/file` | `documents:read` |
 
-- Tag filters go into Papra's search text as `tag:"name"`, always quoted
-  (names with spaces need it; Papra matches case-insensitively). Several tag
-  filters must all match. A `"` in a tag name can't be escaped and is
-  dropped.
+- A tag becomes the search term `tag:"name"`, always quoted (names with
+  spaces need it; Papra matches case-insensitively). A `"` in a tag name
+  can't be escaped and is dropped.
 - Papra serves every file as `application/octet-stream`; `download` takes
   the type from the document's search result and the name from
   `Content-Disposition`.
@@ -163,9 +162,10 @@ attachment menu ── onAction (background.js)
 composer Attach menu ── onAction (background.js), context { composerId }
   │ ensureConnection, checkKey → canReadTags
   ├─► ui.openDialog plugin-dialog view "pick"                 (PickDialog.jsx)
-  │     organisation (default or none), SearchInput (300 ms pause), "Filter by tag"
-  │     Select + removable Chips → searchQuery `words tag:"A" tag:"B"`,
-  │     25 per page, "Show more"; rows show date, size, tags; over 25 MB disabled
+  │     organisation (default or none); search box (300 ms pause) passed to
+  │     Papra unchanged as searchQuery; quick filter chips and search tips
+  │     toggle a term in it (query.js); 25 per page, "Show more";
+  │     rows show date, size, tags; over 25 MB disabled
   │     onResult { organizationId, documents: [{ id, name, mimeType, size }] }
   ├─► attachDocuments                                         (attach.js)
   │     per document: client.download → jmap.uploadBlob → composer.attach
@@ -173,16 +173,25 @@ composer Attach menu ── onAction (background.js), context { composerId }
   └─► one toast: attached one / attached n / attached n, then stopped: why
 ```
 
-- Several tag filters must all match (Papra's `tag:a tag:b`). The filter
-  needs `tags:read`; without it the dialog offers no tag filter, search
-  still works.
-- Switching organisation clears the tag filters and what was picked: tags
-  and documents belong to one organisation.
+- **The search box is Papra's search language.** The plugin sends what
+  the user typed; Papra does all filtering (`tag:`, `name:`, `content:`,
+  `date:`, `created:`, `has:`, `AND`/`OR`/`NOT`, brackets; all checked
+  through the API). Papra reports no errors for a query it can't read (an
+  unknown filter finds nothing, a stray bracket is ignored) and can't say
+  how it read one, so the plugin doesn't parse queries; when a search with
+  a filter finds nothing, it says to check the filters.
+- **Quick filters:** the organisation's six most-used tags (by Papra's
+  `documentsCount`; needs `tags:read`), "Added this year" (`created:>=YYYY`:
+  many documents have no document date, so `date:` would miss them) and
+  "Untagged" (`-has:tags`). A chip adds its term, ticked, or removes it.
+  **Search tips** (collapsed) list common forms; a click adds one; the last
+  line opens Papra's guide.
+- Switching organisation clears what was picked: documents belong to one
+  organisation.
 - Picked documents are listed as removable chips above the results, so a
   new search that hides them doesn't hide what "Attach 2" will attach.
 - A result's tags are shown as text in the row: the kit's `ListRow` takes a
-  text subtitle, so a click on a tag can't filter by it. The "Filter by tag"
-  list does that.
+  text subtitle, so a tag in it can't be a button. The quick filters do that.
 - The proxy buffers answers up to 25 MB, so larger documents are shown but
   can't be picked.
 

@@ -109,12 +109,19 @@ export function createBackground(api) {
     }
   }
 
-  /** One toast per save, so a warning isn't dropped by the host's toast budget. */
-  function report(attachment, choice, { tagError }) {
-    const vars = { name: attachment.name, organization: choice.organizationName || '' };
-    if (tagError) api.toast.warning(t('done.saved_tag_failed', { ...vars, error: errorText(t, tagError) }));
-    else if (choice.missingDefaults?.length) api.toast.warning(t('done.saved_missing_tags', { ...vars, tags: choice.missingDefaults.join(', ') }));
-    else api.toast.success(t('done.saved', vars));
+  /**
+   * One toast per save, so a warning isn't dropped by the host's toast
+   * budget. It names the tags the document got, so a skipped default tag
+   * doesn't read as "saved without tags".
+   */
+  function report(attachment, choice, { tagged = [], tagError }) {
+    const ids = choice.tagIds || [];
+    const names = tagged.map((id) => choice.tagNames?.[ids.indexOf(id)]).filter(Boolean);
+    const vars = { name: attachment.name, organization: choice.organizationName || '', tagged: names.join(', ') };
+    const saved = names.length ? t('done.saved_tagged', vars) : t('done.saved', vars);
+    if (tagError) api.toast.warning(`${saved} ${t('done.tag_failed', { error: errorText(t, tagError) })}`);
+    else if (choice.missingDefaults?.length) api.toast.warning(`${saved} ${t('done.missing_defaults', { ...vars, tags: choice.missingDefaults.join(', ') })}`);
+    else api.toast.success(saved);
   }
 
   async function attachFlow(context) {

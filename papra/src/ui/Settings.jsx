@@ -101,7 +101,9 @@ export function Settings({ api = getApi() }) {
           )}
           {connection.state === 'connected' && (
             <>
-              <Text>{t('settings.connected', { host, name: key?.name || '…' })}</Text>
+              {key && <Text>{t('settings.connected', { host, name: key.name })}</Text>}
+              {!key && !error && <Text tone="muted">{t('common.loading')}</Text>}
+              {!key && error && <Text>{t('settings.check_failed', { host })}</Text>}
               {key && key.missing.length > 0 && <Alert tone="warning" icon="alert-triangle">{t('settings.missing', { missing: key.missing.join(', ') })}</Alert>}
               {key && key.missing.length === 0 && !key.canTag && <Text tone="muted">{t('settings.cannot_tag')}</Text>}
               <div><Button variant="secondary" busy={busy} onClick={onDisconnect}>{t('settings.disconnect')}</Button></div>

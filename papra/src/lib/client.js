@@ -123,10 +123,13 @@ export function createClient({ proxyFetch, credentialId, base }) {
         .sort((a, b) => a.name.localeCompare(b.name));
     },
 
-    /** An organisation's tags, by name. Needs tags:read. */
+    /** An organisation's tags, by name, each with how many documents have it (`count`). Needs tags:read. */
     async tags(organizationId) {
       const rows = (await json(`/api/organizations/${enc(organizationId)}/tags`))?.tags;
-      return (Array.isArray(rows) ? rows : []).map(tagOf).filter((t) => t.id).sort((a, b) => a.name.localeCompare(b.name));
+      return (Array.isArray(rows) ? rows : [])
+        .map((t) => ({ ...tagOf(t), count: Number.isFinite(t?.documentsCount) ? t.documentsCount : 0 }))
+        .filter((t) => t.id)
+        .sort((a, b) => a.name.localeCompare(b.name));
     },
 
     /**
