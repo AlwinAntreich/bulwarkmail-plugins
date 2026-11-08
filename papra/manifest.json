@@ -84,7 +84,7 @@
       "error.mail_too_large": "Attachments larger than 25 MB can't be saved from Bulwark.",
       "error.rate_limit": "Too many requests. Try again in {seconds} seconds.",
       "error.timeout": "Papra took too long to answer.",
-      "error.unreachable": "Bulwark can't reach Papra.",
+      "error.unreachable": "Bulwark can't reach Papra: the Bulwark server couldn't connect to it. Ask your administrator to check the server's name, network route and certificate from the Bulwark server.",
       "error.blocked": "Bulwark may not connect to this address. Your administrator has to list it in PLUGIN_PROXY_PRIVATE_ORIGINS.",
       "error.proxy": "Bulwark's proxy refused the request: {detail}",
       "error.unavailable": "Papra isn't available right now.",
@@ -131,7 +131,8 @@
       "settings.disconnect": "Disconnect",
       "settings.default_organization": "Default organisation",
       "settings.default_organization_hint": "Preselected when you save to or attach from Papra. You can switch for a single save.",
-      "settings.no_default": "None: choose each time"
+      "settings.no_default": "None: choose each time",
+      "settings.check_failed": "A key is connected for {host}, but Papra couldn’t be asked about it:"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -167,7 +168,7 @@
       "error.mail_too_large": "Anhänge über 25 MB können nicht aus Bulwark gespeichert werden.",
       "error.rate_limit": "Zu viele Anfragen. Versuchen Sie es in {seconds} Sekunden erneut.",
       "error.timeout": "Papra hat zu lange nicht geantwortet.",
-      "error.unreachable": "Bulwark erreicht Papra nicht.",
+      "error.unreachable": "Bulwark erreicht Papra nicht: Der Bulwark-Server konnte keine Verbindung aufbauen. Bitten Sie Ihre Administration, Name, Netzwerkweg und Zertifikat vom Bulwark-Server aus zu prüfen.",
       "error.blocked": "Bulwark darf diese Adresse nicht erreichen. Ihre Administration muss sie in PLUGIN_PROXY_PRIVATE_ORIGINS eintragen.",
       "error.proxy": "Der Proxy von Bulwark hat die Anfrage abgelehnt: {detail}",
       "error.unavailable": "Papra ist gerade nicht erreichbar.",
@@ -214,7 +215,8 @@
       "settings.disconnect": "Trennen",
       "settings.default_organization": "Standard-Organisation",
       "settings.default_organization_hint": "Vorausgewählt, wenn Sie in Papra speichern oder aus Papra anhängen. Für einzelne Vorgänge können Sie wechseln.",
-      "settings.no_default": "Keine: jedes Mal wählen"
+      "settings.no_default": "Keine: jedes Mal wählen",
+      "settings.check_failed": "Ein Schlüssel ist für {host} verbunden, aber Papra konnte nicht dazu befragt werden:"
     }
   }
 }

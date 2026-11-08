@@ -78,9 +78,28 @@ describe('Settings', () => {
     expect(api.calls('proxy.disconnect')).toHaveLength(1);
   });
 
+  it('doesn\'t claim a working connection when Papra can\'t be reached', async () => {
+    await show(fakeApiUnreachable());
+    await screen.findByText('A key is connected for papra.example.com, but Papra couldn’t be asked about it:');
+    expect(screen.getByText(/^Bulwark can't reach Papra: the Bulwark server couldn't connect/)).toBeTruthy();
+    expect(screen.queryByText(/Connected to/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
+  });
+
   it('tells the user to ask the admin while no server is set', async () => {
     await show(makeApi({ serverUrl: '' }));
     await screen.findByText('Papra isn\'t set up yet. Ask your administrator to set the Papra server URL.');
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+function fakeApiUnreachable() {
+  return fakeApi({
+    translations: manifest.locales,
+    handlers: {
+      'config.get': () => ({ serverUrl: SERVER }),
+      'proxy.accounts': () => [{ credentialId: 'papra', origin: SERVER, connected: true }],
+      'proxy.fetch': () => ({ status: 502, ok: false, headers: {}, body: '', proxyError: 'unreachable' }),
+    },
+  });
+}
