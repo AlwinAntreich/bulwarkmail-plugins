@@ -13,7 +13,7 @@ describes the implementation and changes with it.
 | Papra client, connection check | done (step 4) |
 | Save to Papra | done (step 5) |
 | From Papra | done (step 6) |
-| Settings section | planned (step 7) |
+| Settings section | done (step 7) |
 
 ## Files
 
@@ -28,6 +28,8 @@ describes the implementation and changes with it.
 | `src/lib/tags.js` | the admin's default tags: parse the list, match it against an organisation's tags |
 | `src/ui/SaveDialog.jsx` | the "Save to Papra" dialog |
 | `src/ui/PickDialog.jsx` | the "Attach from Papra" dialog |
+| `src/ui/Settings.jsx` | Settings > Papra: connection and default organisation |
+| `src/ui/organizations.js` | which organisation a dialog starts with |
 | `src/ui/host.js` | the `api` for UI code (background or slot frame) |
 | `src/lib/client.js` | the Papra API client on top of `api.proxy.fetch` |
 | `src/lib/connection.js` | the admin's server, the user's key, the server check and the key's permissions |
@@ -125,7 +127,7 @@ attachment menu ── onAction (background.js)
   │ resolveConnection; disconnected → ui.confirm → connect()   (connection.js)
   │ checkKey → canTag; a lost required permission → error
   ├─► ui.openDialog plugin-dialog view "save"                 (SaveDialog.jsx, slot frame)
-  │     organisations, the remembered one preselected; with canTag the
+  │     organisations, the user's default preselected (or none); with canTag the
   │     organisation's tags, the admin's default tags ticked and fixed,
   │     missing ones named; onResult { organizationId, tagIds, missingDefaults }
   ├─► saveAttachment                                          (save.js)
@@ -139,9 +141,12 @@ attachment menu ── onAction (background.js)
   warning when tags are missing), and the spinner toast only shows from
   1 MB, where it is worth its place in that budget.
 
-- The organisation the user saved to last is kept in `api.storage`
-  (`organizationId`) and preselected next time. The settings page (step 7)
-  will show and change it.
+- **Which organisation a dialog starts with** (`organizations.js`): the
+  default the user chose in Settings (`api.storage`,
+  `defaultOrganizationId`) while it still exists, else the only
+  organisation there is, else none. With none, Save waits until the user
+  picks, and From Papra searches only once one is chosen. A choice in a
+  dialog never changes the default.
 - Tags are added after the upload, one request each. A failed tag stops the
   rest and leaves the document in Papra; the user is told why it has fewer
   tags. With `canTag: false` no tag request is made at all.
@@ -157,7 +162,7 @@ attachment menu ── onAction (background.js)
 composer Attach menu ── onAction (background.js), context { composerId }
   │ ensureConnection, checkKey → canReadTags
   ├─► ui.openDialog plugin-dialog view "pick"                 (PickDialog.jsx)
-  │     organisation (remembered), SearchInput (300 ms pause), "Filter by tag"
+  │     organisation (default or none), SearchInput (300 ms pause), "Filter by tag"
   │     Select + removable Chips → searchQuery `words tag:"A" tag:"B"`,
   │     25 per page, "Show more"; rows show date, size, tags; over 25 MB disabled
   │     onResult { organizationId, documents: [{ id, name, mimeType, size }] }
@@ -172,11 +177,25 @@ composer Attach menu ── onAction (background.js), context { composerId }
   still works.
 - Switching organisation clears the tag filters and what was picked: tags
   and documents belong to one organisation.
+- Picked documents are listed as removable chips above the results, so a
+  new search that hides them doesn't hide what "Attach 2" will attach.
 - A result's tags are shown as text in the row: the kit's `ListRow` takes a
   text subtitle, so a click on a tag can't filter by it. The "Filter by tag"
   list does that.
 - The proxy buffers answers up to 25 MB, so larger documents are shown but
   can't be picked.
+
+## Settings > Papra
+
+`Settings.jsx` in the `settings-section` slot:
+
+- Connection: not set up (ask the admin) / not connected (Connect, which
+  runs `connect()`; a key for another server is reported as removed) /
+  connected to the host with the key's name, with a note when it can't tag
+  or lacks a required permission, and Disconnect (`api.proxy.disconnect`).
+- Default organisation: a list of the key's organisations plus "None:
+  choose each time"; saved in `api.storage`. A default that no longer
+  exists shows as none.
 
 ## Permissions
 
@@ -188,8 +207,7 @@ composer Attach menu ── onAction (background.js), context { composerId }
 | `ui:observe` | step 5 | the `plugin-dialog` slot (always granted, not shown to users) |
 | `ui:composer-toolbar` | step 6 | the `composer-attach-menu` entry |
 | `email:blob-write` | step 6 | `api.jmap.uploadBlob` and `api.composer.attach` |
-
-Still expected: `ui:settings-section` (settings).
+| `ui:settings-section` | step 7 | the `settings-section` slot |
 
 ## Build and tests
 
