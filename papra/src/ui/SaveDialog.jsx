@@ -54,10 +54,12 @@ export function SaveDialog({ api = getApi(), attachment = {}, connection, canTag
 
   const submit = () => {
     if (!ready) return;
+    const tagIds = canTag ? [...defaultIds, ...[...picked].filter((id) => !defaultIds.has(id))] : [];
     onResult?.({
       organizationId: organization.id,
       organizationName: organization.name,
-      tagIds: canTag ? [...defaultIds, ...[...picked].filter((id) => !defaultIds.has(id))] : [],
+      tagIds,
+      tagNames: tagIds.map((id) => tags.find((tag) => tag.id === id)?.name || ''),
       missingDefaults: canTag ? defaults.missing : [],
     });
   };

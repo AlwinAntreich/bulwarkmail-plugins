@@ -124,7 +124,7 @@ test.describe('papra plugin', () => {
       await expect(dialog.getByRole('checkbox', { name: 'Bulwark' })).toBeChecked();
       await dialog.getByRole('checkbox', { name: 'Invoice' }).click();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${pdfName} to Alice in Papra.`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${pdfName} to Alice in Papra (tags: Bulwark, Invoice).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
       expect(doc.tags.map((t) => t.name).sort()).toEqual(['Bulwark', 'Invoice']);
@@ -142,7 +142,7 @@ test.describe('papra plugin', () => {
       await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Team);
       await expect(dialog.getByText('Not added, Team has no such tag: Bulwark')).toBeVisible();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${run} team.pdf to Team in Papra, without the tag Bulwark: Team has no such tag.`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${run} team.pdf to Team in Papra. Default tags left out, Team doesn’t have them: Bulwark`)).toBeVisible({ timeout: 60_000 });
     } finally {
       for (const org of ['Alice', 'Team']) {
         for (const doc of await findDocs(org, run).catch(() => [])) await deleteDoc(org, doc.id).catch(() => {});

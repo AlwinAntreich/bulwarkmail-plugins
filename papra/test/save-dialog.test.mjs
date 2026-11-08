@@ -59,7 +59,7 @@ describe('SaveDialog', () => {
     expect(bulwark.disabled).toBe(true);
     await press(screen.getByRole('checkbox', { name: 'Invoice' }));
     await press(save());
-    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_a', organizationName: 'Alice', tagIds: ['a1', 'a2'], missingDefaults: [] });
+    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_a', organizationName: 'Alice', tagIds: ['a1', 'a2'], tagNames: ['Bulwark', 'Invoice'], missingDefaults: [] });
   });
 
   it('switches organisation and says which default tag it lacks', async () => {
@@ -68,7 +68,7 @@ describe('SaveDialog', () => {
     expect(screen.getByText('Not added, Team has no such tag: Bulwark')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: 'Bulwark' })).toBeNull();
     await press(save());
-    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_t', organizationName: 'Team', tagIds: [], missingDefaults: ['Bulwark'] });
+    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_t', organizationName: 'Team', tagIds: [], tagNames: [], missingDefaults: ['Bulwark'] });
   });
 
   it('preselects nothing without a default, and saves only after the user picks', async () => {
@@ -94,7 +94,7 @@ describe('SaveDialog', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(api.calls('proxy.fetch').map((c) => new URL(c.args[1]).pathname)).toEqual(['/api/organizations']);
     await press(save());
-    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_a', organizationName: 'Alice', tagIds: [], missingDefaults: [] });
+    expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_a', organizationName: 'Alice', tagIds: [], tagNames: [], missingDefaults: [] });
   });
 
   it('hands back null on Cancel', async () => {

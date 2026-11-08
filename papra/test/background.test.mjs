@@ -9,7 +9,7 @@ const FULL = ['organizations:read', 'documents:read', 'documents:create', 'docum
 const NO_TAGS = ['organizations:read', 'documents:read', 'documents:create'];
 const pdf = { name: 'invoice.pdf', type: 'application/pdf', size: 8, data: new TextEncoder().encode('%PDF-1.4').buffer };
 const click = { actionId: ACTION_SAVE, context: { emailId: 'm1', blobId: 'b1', name: 'invoice.pdf', type: 'application/pdf', size: 8 } };
-const choice = { organizationId: 'org_a', organizationName: 'Alice', tagIds: ['t1', 't2'], missingDefaults: [] };
+const choice = { organizationId: 'org_a', organizationName: 'Alice', tagIds: ['t1', 't2'], tagNames: ['Bulwark', 'Invoice'], missingDefaults: [] };
 
 /** The plugin's api with the admin's config, the user's key and a Papra behind the proxy. */
 function setup({
@@ -76,7 +76,7 @@ describe('saving an attachment', () => {
       'POST /api/organizations/org_a/documents/doc_1/tags',
       'POST /api/organizations/org_a/documents/doc_1/tags',
     ]);
-    expect(toasts(api, 'success')).toEqual(['Saved invoice.pdf to Alice in Papra.']);
+    expect(toasts(api, 'success')).toEqual(['Saved invoice.pdf to Alice in Papra (tags: Bulwark, Invoice).']);
     expect(await api.storage.get(DEFAULT_ORGANIZATION_KEY)).toBe('org_b');
   });
 
@@ -104,10 +104,11 @@ describe('saving an attachment', () => {
     expect(toasts(api, 'success')).toHaveLength(1);
   });
 
-  it('says which default tags the organisation lacks', async () => {
-    const api = setup({ dialog: () => ({ ...choice, tagIds: ['t1'], missingDefaults: ['Email'] }) });
+  it('names the tags the document got, and the default tags the organisation lacks', async () => {
+    // Regression: the toast read "without the tag email" although the picked tag Car was added.
+    const api = setup({ dialog: () => ({ ...choice, tagIds: ['t9'], tagNames: ['Car'], missingDefaults: ['email'] }) });
     await createBackground(api).onAction(click);
-    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra, without the tag Email: Alice has no such tag.']);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra (tags: Car). Default tags left out, Alice doesn’t have them: email']);
     expect(toasts(api, 'success')).toEqual([]);
   });
 
@@ -157,7 +158,7 @@ describe('saving an attachment', () => {
   it('says in its one toast that tagging failed after the upload', async () => {
     const api = setup({ tag: () => ({ status: 500, ok: false, headers: {}, body: '' }) });
     await createBackground(api).onAction(click);
-    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra, but adding its tags failed: Papra had an internal error.']);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra. Adding its tags failed: Papra had an internal error.']);
     expect(toasts(api, 'success')).toEqual([]);
   });
 
