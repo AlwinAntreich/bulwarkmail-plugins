@@ -5,6 +5,7 @@ import { createElement as h } from 'react';
 import { createBackground } from './lib/background.js';
 import { setApi } from './ui/host.js';
 import { SaveDialog } from './ui/SaveDialog.jsx';
+import { PickDialog } from './ui/PickDialog.jsx';
 
 let background = null;
 
@@ -25,6 +26,7 @@ export const hooks = {
 
 function Dialog(props) {
   if (props.view === 'save') return h(SaveDialog, props);
+  if (props.view === 'pick') return h(PickDialog, props);
   return null;
 }
 

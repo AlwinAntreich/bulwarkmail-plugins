@@ -1,12 +1,15 @@
-// The background side: the "Save to Papra" entry in each attachment's menu
-// and the save flow behind it. index.js wires it to the host.
+// The background side: "Save to Papra" in each attachment's menu, "From
+// Papra" in the composer's Attach menu, and the flows behind them. index.js
+// wires it to the host.
 
 import { checkKey, clientFor, connect, resolveConnection } from './connection.js';
 import { PapraError, errorText, toPapraError } from './errors.js';
+import { attachDocuments } from './attach.js';
 import { attachmentOf, saveAttachment } from './save.js';
 import { parseTagList } from './tags.js';
 
 export const ACTION_SAVE = 'save-attachment';
+export const ACTION_ATTACH = 'from-papra';
 /** The organisation the user saved to last; the dialog starts with it. */
 export const ORGANIZATION_KEY = 'organizationId';
 /**
@@ -40,11 +43,11 @@ export function createBackground(api) {
         if (result.error) throw result.error;
         return null;
       }
-      return { connection: result.connection, canTag: result.canTag };
+      return { connection: result.connection, canTag: result.canTag, canReadTags: result.canReadTags };
     }
-    const { missing, canTag } = await checkKey(api, connection);
+    const { missing, canTag, canReadTags } = await checkKey(api, connection);
     if (missing.length) throw new PapraError('error.key_permissions', { missing: missing.join(', ') });
-    return { connection, canTag };
+    return { connection, canTag, canReadTags };
   }
 
   /** A toast with a spinner while a save runs (large attachments take a while); null when the host has none to give. */
@@ -111,20 +114,60 @@ export function createBackground(api) {
     else api.toast.success(t('done.saved', vars));
   }
 
-  /** onAction: start the flow and return at once (the host times hooks out). */
-  function onAction({ actionId, context } = {}) {
-    if (actionId === ACTION_SAVE) return saveFlow(context);
-    return null;
-  }
-
-  /** The menu entry, in the current language. */
-  async function registerUi() {
+  async function attachFlow(context) {
+    const composerId = context?.composerId;
+    if (!composerId) return null;
+    let progress = null;
     try {
-      await api.ui.setActions('attachment-menu', [{ id: ACTION_SAVE, label: t('action.save'), icon: 'archive' }]);
+      const ready = await ensureConnection();
+      if (!ready) return null;
+      const { connection, canReadTags } = ready;
+      const choice = await api.ui.openDialog({
+        title: t('pick.title'),
+        slot: 'plugin-dialog',
+        width: 640,
+        extraProps: {
+          view: 'pick',
+          connection,
+          canReadTags,
+          organizationId: await api.storage.get(ORGANIZATION_KEY).catch(() => null),
+        },
+      });
+      const documents = Array.isArray(choice?.documents) ? choice.documents : [];
+      if (!choice?.organizationId || !documents.length) return null;
+      await api.storage.set(ORGANIZATION_KEY, choice.organizationId).catch(() => {});
+      const total = documents.reduce((n, d) => n + (Number(d.size) || 0), 0);
+      if (total >= PROGRESS_FROM_BYTES) progress = await showProgress(t('pick.attaching', { count: documents.length }));
+      const attached = await attachDocuments({ api, client: clientFor(api, connection), organizationId: choice.organizationId, documents, composerId });
+      hideProgress(progress);
+      api.toast.success(attached.length === 1 ? t('pick.attached_one', { name: attached[0] }) : t('pick.attached', { count: attached.length }));
+      return attached;
     } catch (err) {
-      api.log?.warn?.('setting up the attachment menu failed', err?.message);
+      hideProgress(progress);
+      const e = toPapraError(err);
+      const done = Array.isArray(err?.attached) ? err.attached.length : 0;
+      api.toast.error(done ? t('pick.partly', { count: done, error: errorText(t, e) }) : errorText(t, e));
+      return null;
     }
   }
 
-  return { onAction, registerUi, saveFlow };
+  /** onAction: start the flow and return at once (the host times hooks out). */
+  function onAction({ actionId, context } = {}) {
+    if (actionId === ACTION_SAVE) return saveFlow(context);
+    if (actionId === ACTION_ATTACH) return attachFlow(context);
+    return null;
+  }
+
+  /** The menu entries, in the current language. */
+  async function registerUi() {
+    const entries = [
+      ['attachment-menu', [{ id: ACTION_SAVE, label: t('action.save'), icon: 'archive' }]],
+      ['composer-attach-menu', [{ id: ACTION_ATTACH, label: t('action.attach'), icon: 'archive' }]],
+    ];
+    await Promise.all(entries.map(([surface, actions]) => Promise.resolve()
+      .then(() => api.ui.setActions(surface, actions))
+      .catch((err) => api.log?.warn?.(`setting up ${surface} failed`, err?.message))));
+  }
+
+  return { onAction, registerUi, saveFlow, attachFlow };
 }

@@ -5,12 +5,12 @@ OCR and full-text search:
 
 - **Save to Papra:** save an attachment as a document in one of your Papra
   organisations, with tags.
-- **From Papra:** search Papra from the composer and attach a document to
-  the message (coming next).
+- **From Papra:** search Papra from the composer, filter by tag and attach
+  documents to the message.
 
-Work in progress: Save to Papra works; From Papra and a settings page are
-next. The plan and the decisions are in [docs/PLAN.md](docs/PLAN.md), how it
-is built in [docs/architecture.md](docs/architecture.md).
+Work in progress: a settings page comes next. The plan and the decisions
+are in [docs/PLAN.md](docs/PLAN.md), how it is built in
+[docs/architecture.md](docs/architecture.md).
 
 ## Setup for the admin
 
@@ -55,6 +55,12 @@ the organisation (the last one you used is preselected) and any tags; the
 admin's default tags are already ticked. Bulwark reads attachments up to
 25 MB. If Papra already has the file, you are told so.
 
+Writing a message, open **Attach** and choose **From Papra**. Search by
+words in a document's name or text, narrow the list with **Filter by tag**
+(several tags must all match), tick the documents and press **Attach**.
+Each result shows its tags. Documents over 25 MB can't be attached this
+way.
+
 ## Permissions
 
 | Permission | Why |
@@ -62,4 +68,6 @@ admin's default tags are already ticked. Bulwark reads attachments up to
 | `http:proxy` | talk to Papra with your API key |
 | `email:read` | the "Save to Papra" entry in each attachment's menu |
 | `email:blob-read` | read the attachment you save |
-| `ui:observe` | the dialog where you choose the organisation and tags |
+| `ui:composer-toolbar` | the "From Papra" entry in the composer's Attach menu |
+| `email:blob-write` | add the documents you pick to the message |
+| `ui:observe` | the dialogs where you choose the organisation, tags and documents |

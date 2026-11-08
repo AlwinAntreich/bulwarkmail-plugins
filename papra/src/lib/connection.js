@@ -65,16 +65,17 @@ export function clientFor(api, connection) {
   return createClient({ proxyFetch: (...a) => api.proxy.fetch(...a), credentialId: CREDENTIAL, base: connection.server });
 }
 
-/** What a key's permissions allow: the required ones it lacks, and whether it may tag. */
+/** What a key's permissions allow: the required ones it lacks, whether it may tag, and whether it may list tags (to filter by them). */
 export function keyAbilities(permissions = []) {
   const has = new Set(permissions);
   return {
     missing: REQUIRED_PERMISSIONS.filter((p) => !has.has(p)),
     canTag: TAGGING_PERMISSIONS.every((p) => has.has(p)),
+    canReadTags: has.has('tags:read'),
   };
 }
 
-/** Check the connected key: `{ missing, canTag }`, or a PapraError for a refused key. */
+/** Check the connected key: `{ missing, canTag, canReadTags }`, or a PapraError for a refused key. */
 export async function checkKey(api, connection) {
   const key = await clientFor(api, connection).currentKey();
   return keyAbilities(key.permissions);
@@ -84,7 +85,7 @@ export async function checkKey(api, connection) {
  * Open Bulwark's dialog to connect the user's key to the admin's server, then
  * check it. A key for another server, a refused key and a key without the
  * required permissions are disconnected again, so the next try starts clean.
- * @returns {Promise<{ connected: true, connection: object, canTag: boolean }
+ * @returns {Promise<{ connected: true, connection: object, canTag: boolean, canReadTags: boolean }
  *   | { connected: false, error?: PapraError }>}
  */
 export async function connect(api) {
@@ -111,5 +112,5 @@ export async function connect(api) {
     await drop();
     return { connected: false, error: new PapraError('error.key_permissions', { missing: abilities.missing.join(', ') }) };
   }
-  return { connected: true, connection, canTag: abilities.canTag };
+  return { connected: true, connection, canTag: abilities.canTag, canReadTags: abilities.canReadTags };
 }

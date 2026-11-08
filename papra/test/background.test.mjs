@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { createBackground, ACTION_SAVE, ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
+import { createBackground, ACTION_SAVE, ACTION_ATTACH, ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const SERVER = 'https://papra.example.com';
@@ -15,7 +15,7 @@ const choice = { organizationId: 'org_a', organizationName: 'Alice', tagIds: ['t
 function setup({
   config = { serverUrl: SERVER, defaultTags: 'Bulwark, Email' }, connected = true, permissions = FULL,
   dialog = () => choice, confirm = () => true, upload = () => proxyResponse('{"document":{"id":"doc_1","name":"invoice.pdf"}}'),
-  tag = () => ({ status: 204, ok: true, headers: {}, body: '' }),
+  tag = () => ({ status: 204, ok: true, headers: {}, body: '' }), attachResult = true,
 } = {}) {
   let accounts = connected ? [{ credentialId: 'papra', origin: SERVER, connected: true }] : [];
   return fakeApi({
@@ -30,12 +30,15 @@ function setup({
         if (path === '/api/api-keys/current') return proxyResponse(JSON.stringify({ apiKey: { id: 'ak', name: 'k', permissions } }));
         if (path === '/api/organizations/org_a/documents' && init.method === 'POST') return upload();
         if (path.endsWith('/tags') && init.method === 'POST') return tag();
+        if (/\/documents\/[^/]+\/file$/.test(path)) return { status: 200, ok: true, headers: {}, body: new Uint8Array(5).buffer };
         return { status: 404, ok: false, headers: {}, body: '' };
       },
       'ui.openDialog': dialog,
       'ui.confirm': confirm,
       'email.getAttachment': () => pdf,
       'toast.progress': () => 'progress-1',
+      'jmap.uploadBlob': (bytes, name, type) => ({ blobId: `blob-${name}`, size: bytes.byteLength, type }),
+      'composer.attach': (...args) => (typeof attachResult === 'function' ? attachResult(...args) : attachResult),
     },
   });
 }
@@ -43,14 +46,17 @@ function setup({
 const fetched = (api) => api.calls('proxy.fetch').map((c) => `${c.args[2].method} ${new URL(c.args[1]).pathname}`);
 const toasts = (api, kind) => api.calls(`toast.${kind}`).map((c) => c.args[0]);
 
-describe('the attachment menu', () => {
-  it('offers "Save to Papra", in the user\'s language', async () => {
+describe('the menu entries', () => {
+  it('offers "Save to Papra" and "From Papra", in the user\'s language', async () => {
     const api = setup();
     await createBackground(api).registerUi();
-    expect(api.calls('ui.setActions')[0].args).toEqual(['attachment-menu', [{ id: 'save-attachment', label: 'Save to Papra', icon: 'archive' }]]);
+    expect(api.calls('ui.setActions').map((c) => c.args)).toEqual([
+      ['attachment-menu', [{ id: 'save-attachment', label: 'Save to Papra', icon: 'archive' }]],
+      ['composer-attach-menu', [{ id: 'from-papra', label: 'From Papra', icon: 'archive' }]],
+    ]);
     api.setLocale('de');
     await createBackground(api).registerUi();
-    expect(api.calls('ui.setActions')[1].args[1][0].label).toBe('In Papra speichern');
+    expect(api.calls('ui.setActions').slice(2).map((c) => c.args[1][0].label)).toEqual(['In Papra speichern', 'Aus Papra']);
   });
 });
 
@@ -129,7 +135,7 @@ describe('saving an attachment', () => {
   it('offers to connect first, and saves after connecting', async () => {
     const api = setup({ connected: false });
     await createBackground(api).onAction(click);
-    expect(api.calls('ui.confirm')[0].args[0].message).toBe('Connect your Papra API key to save documents to papra.example.com.');
+    expect(api.calls('ui.confirm')[0].args[0].message).toBe('Connect your Papra API key to use Papra on papra.example.com.');
     expect(api.calls('proxy.connect')).toHaveLength(1);
     expect(toasts(api, 'success')).toHaveLength(1);
   });
@@ -163,3 +169,47 @@ describe('saving an attachment', () => {
     expect(api.calls('proxy.fetch')).toHaveLength(0);
   });
 });
+
+describe('attaching from Papra', () => {
+  const pickClick = { actionId: ACTION_ATTACH, context: { composerId: 'c1' } };
+  const picked = (documents) => () => ({ organizationId: 'org_a', documents });
+  const pdfDoc = { id: 'd1', name: 'a.pdf', mimeType: 'application/pdf', size: 5 };
+
+  it('opens the picker in the remembered organisation and attaches what was picked', async () => {
+    const api = setup({ dialog: picked([pdfDoc]) });
+    await api.storage.set(ORGANIZATION_KEY, 'org_b');
+    await createBackground(api).onAction(pickClick);
+    expect(api.calls('ui.openDialog')[0].args[0]).toMatchObject({
+      title: 'Attach from Papra', extraProps: { view: 'pick', canReadTags: true, organizationId: 'org_b', connection: { state: 'connected', server: SERVER } },
+    });
+    expect(fetched(api)).toEqual(['GET /api/api-keys/current', 'GET /api/organizations/org_a/documents/d1/file']);
+    expect(api.calls('composer.attach')[0].args).toEqual(['c1', { blobId: 'blob-a.pdf', name: 'a.pdf', type: 'application/pdf', size: 5 }]);
+    expect(toasts(api, 'success')).toEqual(['Attached a.pdf from Papra.']);
+    expect(await api.storage.get(ORGANIZATION_KEY)).toBe('org_a');
+  });
+
+  it('counts several documents in its toast', async () => {
+    const api = setup({ dialog: picked([pdfDoc, { ...pdfDoc, id: 'd2', name: 'b.pdf' }]) });
+    await createBackground(api).onAction(pickClick);
+    expect(toasts(api, 'success')).toEqual(['Attached 2 documents from Papra.']);
+  });
+
+  it('says how many were attached before the composer refused one', async () => {
+    const api = setup({ dialog: picked([pdfDoc, { ...pdfDoc, id: 'd2', name: 'b.pdf' }]), attachResult: (_c, file) => file.name !== 'b.pdf' });
+    await createBackground(api).onAction(pickClick);
+    expect(toasts(api, 'error')).toEqual(['Attached 1, then stopped: The message can\'t take b.pdf; it may be too large for your mail server.']);
+  });
+
+  it('attaches nothing when the user cancels', async () => {
+    const api = setup({ dialog: () => null });
+    await createBackground(api).onAction(pickClick);
+    expect(api.calls('composer.attach')).toHaveLength(0);
+  });
+
+  it('needs a composer', async () => {
+    const api = setup();
+    expect(await createBackground(api).onAction({ actionId: ACTION_ATTACH, context: {} })).toBeNull();
+    expect(api.calls('ui.openDialog')).toHaveLength(0);
+  });
+});
+
