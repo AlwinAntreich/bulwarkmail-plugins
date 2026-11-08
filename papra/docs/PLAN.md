@@ -52,6 +52,10 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - **Key permissions for tagging:** the README asks for `tags:read` and `documents:update`. A key without them still saves, untagged, with a notice. Papra checks every request against the user's own membership, so `documents:update` gives the key nothing the user can't already do in Papra; the risk is only a key leaking from Bulwark's server.
 - **Tests never run against the production Bulwark** (`https://drive.antreich.com`, decided 2026-11-08). End-to-end tests need a webmail started for testing, with `PLUGIN_PROXY_PRIVATE_ORIGINS` listing the test Papra; the production instance can't reach `test-env/` anyway.
 - **Test environment** (step 3, 2026-11-08): Papra 26.7.1 on `http://localhost:18012`, seeded by `test-env/seed/seed_papra.py` (alice, organisations Alice and Team, tags with Bulwark only in Alice, five documents, a full key and one without tag permissions). See `test-env/README.md`.
+- **A webmail for testing** (step 4, 2026-11-08). The production image `ghcr.io/bulwarkmail/webmail:1.21.0` runs here with Podman (`--network host`, port 3100, `JMAP_SERVER_URL=http://localhost:18025`, `PLUGIN_PROXY_PRIVATE_ORIGINS=http://localhost:18012`), next to the test Stalwart built from `test-env/stalwart/`. Plugins have to be turned on in the admin policy (`features.pluginsEnabled`).
+  - Its Content Security Policy only allows `https:` connections outside development, so the browser can't reach the test Stalwart over http and signing in fails. Checks through it run with Playwright's `bypassCSP`; they are scripts, not committed tests.
+  - The repository's end-to-end tests need a webmail started with `npm run dev` from the webmail's source (development CSP), or Stalwart behind https. Installing the webmail's packages here (`npm ci` in a clone of `bulwarkmail/webmail`) was refused by this session's permission check; the owner decides. Don't leave a clone at `../jmap-webmail-plugins` that doesn't match the webmail version the repository expects: `slot-showcase`'s tests and `docs:check` compare against it when it's there, and fail against 1.21.0.
+  - What the checks showed: the client works through the real proxy (key permissions, organisations, tags, search with `tag:`, download, upload of a file name with quotes, tagging, 409 for a duplicate, 401 for a missing permission and for a wrong key). And the host stores the user's key for any https origin and relays requests there, while refusing to use it on the admin's server (`wrong_origin`): the server check is needed, and it can't stop the relay.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -90,6 +94,8 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
 - `GET /api/api-keys/current` returns the key's id, name and permissions, and needs no permission. The plugin can check a key when it is connected and know whether it may tag.
 - A wrong key and a key that lacks the permission for a request both get **401** `auth.unauthorized`; the status doesn't tell them apart, `/api/api-keys/current` does.
 - Tagging a document answers 204 with no body.
+- Uploading a file Papra already has (same content) answers 409 `document.already_exists`; the upload limit answers 413 `document.size_too_large`.
+- Search syntax checked in `test-env/`: `tag:"Tax 2025"` needs the quotes, tag names match case-insensitively, `tag:a tag:b` means both, `tag:a OR tag:b` either, and pages count from `pageIndex=0`.
 - Routes and the key permission each needs (checked on `main`, 2026-11-08, in `apps/papra-server/src/modules/`):
   - `GET /api/organizations` → `{ organizations }`, the user's organisations (`organizations:read`; `organizations/organizations.api.routes.ts`)
   - `GET /api/organizations/:organizationId/documents` with query `searchQuery`, `pageIndex`, `pageSize` (at most 100), `sortField`, `sortOrder` → `{ documents, documentsCount }`: list and full-text search (`documents:read`)
@@ -141,12 +147,12 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 ## Work plan
 
-Status: steps 1 to 3 are done (branches `papra/scaffold`, `papra/test-env`); how the plugin is built so far is in [architecture.md](architecture.md).
+Status: steps 1 to 4 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`); how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
 3. Add Papra to `test-env/` and confirm it starts and is reachable by the plugin proxy. Done, except the proxy: Papra starts, the seed runs twice cleanly, and the seeded keys list organisations, search (`tag:invoice`, words), list tags and download files; a key without the tag permissions gets 401 on tags. Reaching it through Bulwark's plugin proxy needs a webmail with `PLUGIN_PROXY_PRIVATE_ORIGINS`; that check comes with the first end-to-end test.
-4. Papra client module with unit tests: list organisations, search, upload, download.
+4. Papra client module with unit tests: list organisations, search, upload, download. Done, with the connection check (server lock, key permissions) and its tests; checked through a test webmail's plugin proxy against the test Papra.
 5. "Save to Papra" on attachments, with tests.
 6. "Attach from Papra" in the composer, with tests.
 7. Settings section: connection state, default organisation.
