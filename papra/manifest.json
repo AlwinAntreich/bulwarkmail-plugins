@@ -1,0 +1,28 @@
+{
+  "id": "papra",
+  "name": "Papra",
+  "version": "0.1.0",
+  "author": "Alwin Antreich",
+  "description": "Save attachments to Papra and attach documents from Papra to new mail. Each user connects their own Papra API key to the server the admin sets.",
+  "type": "ui-extension",
+  "permissions": ["http:proxy"],
+  "entrypoint": "index.js",
+  "minAppVersion": "1.15.0",
+  "configSchema": {
+    "serverUrl": {
+      "type": "string",
+      "label": "Papra server URL",
+      "description": "For example https://papra.example.com. Users connect their API key to this server only; the plugin does nothing until it is set.",
+      "placeholder": "https://papra.example.com",
+      "required": true,
+      "default": ""
+    }
+  },
+  "credentials": {
+    "papra": {
+      "label": "Papra",
+      "scope": "user",
+      "inject": { "type": "bearer" }
+    }
+  }
+}
