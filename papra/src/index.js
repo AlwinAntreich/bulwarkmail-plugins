@@ -6,6 +6,7 @@ import { createBackground } from './lib/background.js';
 import { setApi } from './ui/host.js';
 import { SaveDialog } from './ui/SaveDialog.jsx';
 import { PickDialog } from './ui/PickDialog.jsx';
+import { Settings } from './ui/Settings.jsx';
 
 let background = null;
 
@@ -32,4 +33,5 @@ function Dialog(props) {
 
 export const slots = {
   'plugin-dialog': { component: Dialog },
+  'settings-section': { component: () => h(Settings, {}) },
 };

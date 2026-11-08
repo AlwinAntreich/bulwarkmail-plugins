@@ -11,7 +11,8 @@
     "email:blob-read",
     "email:blob-write",
     "ui:composer-toolbar",
-    "ui:observe"
+    "ui:observe",
+    "ui:settings-section"
   ],
   "entrypoint": "index.js",
   "minAppVersion": "1.15.0",
@@ -112,7 +113,18 @@
       "pick.count_one": "1 document",
       "field.organization_choose": "Choose an organisation",
       "pick.picked": "Picked",
-      "pick.unpick": "Remove {name}"
+      "pick.unpick": "Remove {name}",
+      "settings.connection": "Connection",
+      "settings.not_configured": "Papra isn't set up yet. Ask your administrator to set the Papra server URL.",
+      "settings.disconnected": "Not connected. Connect your Papra API key for {host}.",
+      "settings.wrong_server": "Your key was connected to {server} and has been removed: only {host} can be used.",
+      "settings.connected": "Connected to {host} with the key “{name}”.",
+      "settings.cannot_tag": "This key can't add tags: documents are saved without tags. A key with tags:read and documents:update can.",
+      "settings.missing": "This key lacks {missing}. Connect a key that has them.",
+      "settings.disconnect": "Disconnect",
+      "settings.default_organization": "Default organisation",
+      "settings.default_organization_hint": "Preselected when you save to or attach from Papra. You can switch for a single save.",
+      "settings.no_default": "None: choose each time"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -184,7 +196,18 @@
       "pick.count_one": "1 Dokument",
       "field.organization_choose": "Organisation wählen",
       "pick.picked": "Ausgewählt",
-      "pick.unpick": "{name} entfernen"
+      "pick.unpick": "{name} entfernen",
+      "settings.connection": "Verbindung",
+      "settings.not_configured": "Papra ist noch nicht eingerichtet. Bitten Sie Ihre Administration, die Papra-Server-URL einzutragen.",
+      "settings.disconnected": "Nicht verbunden. Verbinden Sie Ihren Papra-API-Schlüssel für {host}.",
+      "settings.wrong_server": "Ihr Schlüssel war mit {server} verbunden und wurde entfernt: Nur {host} kann genutzt werden.",
+      "settings.connected": "Mit {host} verbunden, Schlüssel „{name}“.",
+      "settings.cannot_tag": "Dieser Schlüssel kann keine Tags vergeben: Dokumente werden ohne Tags gespeichert. Ein Schlüssel mit tags:read und documents:update kann es.",
+      "settings.missing": "Diesem Schlüssel fehlt {missing}. Verbinden Sie einen Schlüssel mit diesen Berechtigungen.",
+      "settings.disconnect": "Trennen",
+      "settings.default_organization": "Standard-Organisation",
+      "settings.default_organization_hint": "Vorausgewählt, wenn Sie in Papra speichern oder aus Papra anhängen. Für einzelne Vorgänge können Sie wechseln.",
+      "settings.no_default": "Keine: jedes Mal wählen"
     }
   }
 }

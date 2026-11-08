@@ -8,8 +8,7 @@ OCR and full-text search:
 - **From Papra:** search Papra from the composer, filter by tag and attach
   documents to the message.
 
-Work in progress: a settings page comes next. The plan and the decisions
-are in [docs/PLAN.md](docs/PLAN.md), how it is built in
+The plan and the decisions are in [docs/PLAN.md](docs/PLAN.md), how it is built in
 [docs/architecture.md](docs/architecture.md).
 
 ## Setup for the admin
@@ -43,21 +42,27 @@ also lets the key change the name, date and notes of documents, which you
 can do in Papra yourself anyway. A Papra key always covers all your
 organisations, private and shared.
 
-The first time you use the plugin it asks you to connect the key; Bulwark
-shows a form with the server already filled in. Leave the server as it is:
+Connect the key in Settings > Papra, or when the plugin first asks for it;
+Bulwark shows a form with the server already filled in. Leave the server as it is:
 a key connected to another server isn't used. The key stays on the Bulwark
 server; the plugin never sees it.
 
 ## Using it
 
+In Settings > Papra you can choose a default organisation; the dialogs
+preselect it. Without one, you pick the organisation each time, so nothing
+lands in a shared organisation by accident. The same page shows what your
+key may do and disconnects it.
+
 Open an attachment's menu in a message and choose **Save to Papra**. Pick
-the organisation (the last one you used is preselected) and any tags; the
-admin's default tags are already ticked. Bulwark reads attachments up to
+the organisation and any tags; the admin's default tags are already
+ticked. Bulwark reads attachments up to
 25 MB. If Papra already has the file, you are told so.
 
 Writing a message, open **Attach** and choose **From Papra**. Search by
 words in a document's name or text, narrow the list with **Filter by tag**
-(several tags must all match), tick the documents and press **Attach**.
+(several tags must all match), tick the documents and press **Attach**. Picked documents stay listed
+above the results while you search on.
 Each result shows its tags. Documents over 25 MB can't be attached this
 way.
 
@@ -71,3 +76,4 @@ way.
 | `ui:composer-toolbar` | the "From Papra" entry in the composer's Attach menu |
 | `email:blob-write` | add the documents you pick to the message |
 | `ui:observe` | the dialogs where you choose the organisation, tags and documents |
+| `ui:settings-section` | the Papra page in Settings: connection and default organisation |
