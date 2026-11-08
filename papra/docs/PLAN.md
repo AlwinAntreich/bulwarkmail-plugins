@@ -190,7 +190,7 @@ Status: steps 1 to 9 are done (branches `papra/scaffold`, `papra/test-env`, `pap
 
 - **Not in the extension directory yet** (decided 2026-11-08): the owner uses and polishes the plugin first; `publish.json` keeps it under `skip`. Publishing later: move it to `publish`, and a directory admin adds the trusted publisher (see the root README, "Releasing"). Until then it is installed by hand (README, "Install without the extension directory").
 - **The first release is 0.1.1** (2026-11-08): `npm run release` only takes a version newer than the manifest's, and the manifest has said 0.1.0 since the scaffold. The upstream plugins started the same way (category-tabs was added at 1.1.0 and first released as 1.1.1).
-- Merge the branches into the fork's `main`, then `npm run release -- papra patch`, which builds `papra.zip`, sets the versions and tags.
+- Merged into the fork's `main` (2026-11-08). `npm run release` refuses `papra` while it is under `skip`, and wouldn't build its first ZIP, so 0.1.1 is released by hand (CONTRIBUTING.md, "Releasing"): branch `papra/release-0.1.1`, then the owner merges it and tags `papra@0.1.1` on `main`.
 - Try it once in a production-like Bulwark (https Stalwart, no `bypassCSP`), with the real Papra at `https://papra.antreich.com` and `PLUGIN_PROXY_PRIVATE_ORIGINS` set: the test webmail here runs with the browser's CSP switched off.
 
 ## Open questions for the owner

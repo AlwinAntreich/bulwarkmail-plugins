@@ -39,9 +39,29 @@ Every change starts in the plan and ends with a reviewed merge to `main`.
    commit included, and nothing it does not do.
 1. The CI **must pass green** before the merge. Every review finding is
    either fixed or answered in its thread with why it does not apply.
-1. **Release** with `npm run release` (see the
-   [README](../README.md#releasing)); a tag `papra@<version>` publishes to
-   the extension directory once `papra` is listed in `publish.json`.
+1. **Release:** see [Releasing](#releasing).
+
+## Releasing
+
+While `papra` is under `skip` in `publish.json`, `npm run release` refuses
+it ("not in the publish list"), and it would not build `papra.zip` anyway:
+it only rebuilds a ZIP that is already committed. So a release is made by
+hand, the same way the script does it:
+
+1. On a branch off `main`: set the version in `manifest.json`,
+   `package.json` and `package-lock.json` (its top-level and root package
+   `version`), run `node scripts/build.mjs papra`, `npm run check` and the
+   tests, and turn `## Unreleased` in `CHANGELOG.md` into
+   `## <version> (<date>)`.
+2. Commit exactly those files and `papra/papra.zip` as
+   `chore: release papra <version>`.
+3. The owner merges it into `main` and tags the commit there:
+   `git tag -a papra@<version> -m "papra <version>"`.
+
+Pushing a `papra@<version>` tag starts the Publish workflow, if Actions
+run in the fork; it stops at once because `papra` isn't in the publish
+list, and submits nothing. Once `papra` is listed, `npm run release`
+does all of this.
 
 ## Documentation
 
