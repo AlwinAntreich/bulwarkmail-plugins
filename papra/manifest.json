@@ -1,7 +1,7 @@
 {
   "id": "papra",
   "name": "Papra",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Alwin Antreich",
   "description": "Save attachments to Papra and attach documents from Papra to new mail. Each user connects their own Papra API key to the server the admin sets.",
   "type": "ui-extension",

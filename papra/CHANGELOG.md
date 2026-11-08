@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.1 (2026-11-08)
+
 First version.
 
 ### Added
