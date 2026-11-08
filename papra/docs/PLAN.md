@@ -63,6 +63,12 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - Only `attachment-menu`, no `reader-actions` "save the whole message": saving messages (`.eml`) is not in version 1.
   - No "Open in Papra" link after saving: the address of a document in Papra's web app isn't checked yet. Can follow.
   - The end-to-end tests delete what they saved with alice's Papra session (the seeded keys have no `documents:delete`).
+  - After review (screenshots in light, dark and at phone width): a spinner toast for saves from 1 MB, and one toast per save. Bulwark drops a plugin's toasts past 5 in 10 seconds, the result included; with a spinner on every save and a second toast for missing tags, the end-to-end test saw the warning dropped after a few saves. The file name in the dialog wraps instead of being cut off at phone width.
+- **Decisions taken in step 6** (2026-11-08):
+  - Several documents can be attached at once (ticked in the list), not only one: attaching a few invoices together is common, and the list already has check boxes.
+  - The tag filter is a "Filter by tag" list plus removable chips, not a click on a result's tag as planned: `ListRow` takes a text subtitle, so a tag in it can't be a button. Same Papra search either way.
+  - The filter shows when the key has `tags:read`; attaching needs nothing beyond the required permissions.
+  - Results show the document date when Papra has one, else when it was added; Papra sorts newest first.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -154,14 +160,14 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 ## Work plan
 
-Status: steps 1 to 5 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`, `papra/save`); how the plugin is built so far is in [architecture.md](architecture.md).
+Status: steps 1 to 6 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`, `papra/save`, `papra/attach`); how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
 3. Add Papra to `test-env/` and confirm it starts and is reachable by the plugin proxy. Done, except the proxy: Papra starts, the seed runs twice cleanly, and the seeded keys list organisations, search (`tag:invoice`, words), list tags and download files; a key without the tag permissions gets 401 on tags. Reaching it through Bulwark's plugin proxy needs a webmail with `PLUGIN_PROXY_PRIVATE_ORIGINS`; that check comes with the first end-to-end test.
 4. Papra client module with unit tests: list organisations, search, upload, download. Done, with the connection check (server lock, key permissions) and its tests; checked through a test webmail's plugin proxy against the test Papra.
 5. "Save to Papra" on attachments, with tests. Done: unit tests, a jsdom test of the dialog, and end-to-end tests that pass against the test webmail (run with `bypassCSP`, see "A webmail for testing").
-6. "Attach from Papra" in the composer, with tests.
+6. "Attach from Papra" in the composer, with tests. Done: unit tests, a jsdom test of the dialog, an end-to-end test against the test webmail; screenshots in light, dark and at phone width reviewed.
 7. Settings section: connection state, default organisation.
 8. i18n (en, de), README (setup incl. `PLUGIN_PROXY_PRIVATE_ORIGINS` and Papra API key creation), CHANGELOG, media, built ZIP.
 9. Run all repository checks; fix everything they report.

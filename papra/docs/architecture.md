@@ -12,7 +12,7 @@ describes the implementation and changes with it.
 | Papra in `test-env/` | done (step 3) |
 | Papra client, connection check | done (step 4) |
 | Save to Papra | done (step 5) |
-| From Papra | planned (step 6) |
+| From Papra | done (step 6) |
 | Settings section | planned (step 7) |
 
 ## Files
@@ -22,10 +22,12 @@ describes the implementation and changes with it.
 | `manifest.json` | id, permissions, the admin's settings (`configSchema`) and the user credential |
 | `package.json`, `package-lock.json` | the build (esbuild into `dist/index.js`) and the test script; esbuild is the only package |
 | `src/index.js` | the entry point: starts the background, routes `onAction`, renders the dialog slot |
-| `src/lib/background.js` | the attachment menu entry and the save flow |
+| `src/lib/background.js` | the menu entries and the save and attach flows |
 | `src/lib/save.js` | read an attachment, upload it, tag it |
+| `src/lib/attach.js` | download documents and add them to the composer |
 | `src/lib/tags.js` | the admin's default tags: parse the list, match it against an organisation's tags |
 | `src/ui/SaveDialog.jsx` | the "Save to Papra" dialog |
+| `src/ui/PickDialog.jsx` | the "Attach from Papra" dialog |
 | `src/ui/host.js` | the `api` for UI code (background or slot frame) |
 | `src/lib/client.js` | the Papra API client on top of `api.proxy.fetch` |
 | `src/lib/connection.js` | the admin's server, the user's key, the server check and the key's permissions |
@@ -128,8 +130,14 @@ attachment menu ── onAction (background.js)
   │     missing ones named; onResult { organizationId, tagIds, missingDefaults }
   ├─► saveAttachment                                          (save.js)
   │     email.getAttachment (≤ 25 MB) → client.upload → client.tagDocument per tag
-  └─► toast: saved / already in Papra / default tags missing / tagging failed
+  │     from 1 MB a spinner toast (toast.progress) until it ends
+  └─► one toast: saved / saved without some tags / tagging failed / already in Papra
 ```
+
+- **One toast per action.** Bulwark drops a plugin's toasts past 5 in 10
+  seconds, the result included. So a save reports in a single toast (a
+  warning when tags are missing), and the spinner toast only shows from
+  1 MB, where it is worth its place in that budget.
 
 - The organisation the user saved to last is kept in `api.storage`
   (`organizationId`) and preselected next time. The settings page (step 7)
@@ -143,6 +151,33 @@ attachment menu ── onAction (background.js)
   what failed and what to do (ask the admin, connect, give the key a
   permission).
 
+## From Papra
+
+```
+composer Attach menu ── onAction (background.js), context { composerId }
+  │ ensureConnection, checkKey → canReadTags
+  ├─► ui.openDialog plugin-dialog view "pick"                 (PickDialog.jsx)
+  │     organisation (remembered), SearchInput (300 ms pause), "Filter by tag"
+  │     Select + removable Chips → searchQuery `words tag:"A" tag:"B"`,
+  │     25 per page, "Show more"; rows show date, size, tags; over 25 MB disabled
+  │     onResult { organizationId, documents: [{ id, name, mimeType, size }] }
+  ├─► attachDocuments                                         (attach.js)
+  │     per document: client.download → jmap.uploadBlob → composer.attach
+  │     stops at the first problem; the error carries what was attached
+  └─► one toast: attached one / attached n / attached n, then stopped: why
+```
+
+- Several tag filters must all match (Papra's `tag:a tag:b`). The filter
+  needs `tags:read`; without it the dialog offers no tag filter, search
+  still works.
+- Switching organisation clears the tag filters and what was picked: tags
+  and documents belong to one organisation.
+- A result's tags are shown as text in the row: the kit's `ListRow` takes a
+  text subtitle, so a click on a tag can't filter by it. The "Filter by tag"
+  list does that.
+- The proxy buffers answers up to 25 MB, so larger documents are shown but
+  can't be picked.
+
 ## Permissions
 
 | Permission | Since | Why |
@@ -151,9 +186,10 @@ attachment menu ── onAction (background.js)
 | `email:read` | step 5 | the `attachment-menu` entry |
 | `email:blob-read` | step 5 | `api.email.getAttachment` |
 | `ui:observe` | step 5 | the `plugin-dialog` slot (always granted, not shown to users) |
+| `ui:composer-toolbar` | step 6 | the `composer-attach-menu` entry |
+| `email:blob-write` | step 6 | `api.jmap.uploadBlob` and `api.composer.attach` |
 
-Still expected: `ui:composer-toolbar` and `email:blob-write` (From Papra),
-`ui:settings-section` (settings).
+Still expected: `ui:settings-section` (settings).
 
 ## Build and tests
 
