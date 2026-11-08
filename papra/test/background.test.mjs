@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { createBackground, ACTION_SAVE, ACTION_ATTACH, ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
+import { createBackground, ACTION_SAVE, ACTION_ATTACH, DEFAULT_ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const SERVER = 'https://papra.example.com';
@@ -61,9 +61,9 @@ describe('the menu entries', () => {
 });
 
 describe('saving an attachment', () => {
-  it('asks where, uploads, tags and remembers the organisation', async () => {
+  it('asks where (the user\'s default preselected), uploads and tags, and leaves the default alone', async () => {
     const api = setup();
-    await api.storage.set(ORGANIZATION_KEY, 'org_b');
+    await api.storage.set(DEFAULT_ORGANIZATION_KEY, 'org_b');
     await createBackground(api).onAction(click);
     const props = api.calls('ui.openDialog')[0].args[0].extraProps;
     expect(props).toMatchObject({
@@ -77,7 +77,7 @@ describe('saving an attachment', () => {
       'POST /api/organizations/org_a/documents/doc_1/tags',
     ]);
     expect(toasts(api, 'success')).toEqual(['Saved invoice.pdf to Alice in Papra.']);
-    expect(await api.storage.get(ORGANIZATION_KEY)).toBe('org_a');
+    expect(await api.storage.get(DEFAULT_ORGANIZATION_KEY)).toBe('org_b');
   });
 
   it('shows a progress toast while saving a large file, and takes it away also when saving fails', async () => {
@@ -175,9 +175,9 @@ describe('attaching from Papra', () => {
   const picked = (documents) => () => ({ organizationId: 'org_a', documents });
   const pdfDoc = { id: 'd1', name: 'a.pdf', mimeType: 'application/pdf', size: 5 };
 
-  it('opens the picker in the remembered organisation and attaches what was picked', async () => {
+  it('opens the picker in the user\'s default organisation and attaches what was picked', async () => {
     const api = setup({ dialog: picked([pdfDoc]) });
-    await api.storage.set(ORGANIZATION_KEY, 'org_b');
+    await api.storage.set(DEFAULT_ORGANIZATION_KEY, 'org_b');
     await createBackground(api).onAction(pickClick);
     expect(api.calls('ui.openDialog')[0].args[0]).toMatchObject({
       title: 'Attach from Papra', extraProps: { view: 'pick', canReadTags: true, organizationId: 'org_b', connection: { state: 'connected', server: SERVER } },
@@ -185,7 +185,7 @@ describe('attaching from Papra', () => {
     expect(fetched(api)).toEqual(['GET /api/api-keys/current', 'GET /api/organizations/org_a/documents/d1/file']);
     expect(api.calls('composer.attach')[0].args).toEqual(['c1', { blobId: 'blob-a.pdf', name: 'a.pdf', type: 'application/pdf', size: 5 }]);
     expect(toasts(api, 'success')).toEqual(['Attached a.pdf from Papra.']);
-    expect(await api.storage.get(ORGANIZATION_KEY)).toBe('org_a');
+    expect(await api.storage.get(DEFAULT_ORGANIZATION_KEY)).toBe('org_b');
   });
 
   it('counts several documents in its toast', async () => {

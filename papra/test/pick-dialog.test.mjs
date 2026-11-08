@@ -56,7 +56,7 @@ const press = async (el) => { await act(async () => { fireEvent.click(el); }); }
 const row = (name) => screen.getByText(name).closest('[role="listitem"]');
 
 describe('PickDialog', () => {
-  it('lists the remembered organisation\'s documents with their tags, newest search first page', async () => {
+  it('lists the default organisation\'s documents with their tags', async () => {
     const { searches } = await open();
     expect(searches[0]).toEqual({ searchQuery: '', pageIndex: '0', pageSize: '25' });
     expect(screen.getByText('3 documents')).toBeTruthy();
@@ -77,6 +77,18 @@ describe('PickDialog', () => {
         { id: 'd2', name: 'contract.pdf', mimeType: 'application/pdf', size: 2048 },
       ],
     });
+  });
+
+  it('waits for the user to pick an organisation when there is no default', async () => {
+    const { api, searches } = makeApi();
+    await act(async () => {
+      render(React.createElement(PickDialog, { api, connection: { state: 'connected', server: SERVER }, canReadTags: true, organizationId: null, onResult: vi.fn() }));
+    });
+    await screen.findByRole('option', { name: 'Choose an organisation' });
+    expect(searches).toEqual([]);
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    await act(async () => { fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'org_a' } }); });
+    await screen.findByText('acme-invoice.pdf');
   });
 
   it('searches as the user types, after a pause', async () => {

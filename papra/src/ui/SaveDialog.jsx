@@ -4,6 +4,7 @@ import { getApi, formatSize } from './host.js';
 import { clientFor } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
 import { matchTags } from '../lib/tags.js';
+import { organizationOptions, preselect } from './organizations.js';
 
 /**
  * The "Save to Papra" dialog: which organisation, and which tags on top of
@@ -26,7 +27,7 @@ export function SaveDialog({ api = getApi(), attachment = {}, connection, canTag
     client.organizations().then((list) => {
       if (cancelled) return;
       setOrganizations(list);
-      setSelected((prev) => prev || (list.some((o) => o.id === organizationId) ? organizationId : list[0]?.id || null));
+      setSelected((prev) => prev || preselect(list, organizationId));
     }, (err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
   }, [client, organizationId, attempt]);
@@ -79,8 +80,8 @@ export function SaveDialog({ api = getApi(), attachment = {}, connection, canTag
       {organizations && organizations.length === 0 && <Alert tone="warning" icon="alert-triangle">{t('save.no_organizations')}</Alert>}
       {organizations && organizations.length > 0 && (
         <Field label={t('field.organization')}>
-          <Select block value={selected || ''} onChange={(value) => setSelected(value)}
-            options={organizations.map((o) => ({ value: o.id, label: o.name }))} />
+          <Select block value={selected || ''} onChange={(value) => setSelected(value || null)}
+            options={organizationOptions(organizations, selected, t)} />
         </Field>
       )}
       {organization && !canTag && <Alert tone="info" icon="info-circle">{t('save.cannot_tag')}</Alert>}

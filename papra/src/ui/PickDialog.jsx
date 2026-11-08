@@ -4,6 +4,7 @@ import { getApi, formatSize } from './host.js';
 import { clientFor } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
 import { MAX_DOCUMENT_BYTES } from '../lib/attach.js';
+import { organizationOptions, preselect } from './organizations.js';
 
 export const SEARCH_DELAY_MS = 300;
 const PAGE = 25;
@@ -34,7 +35,7 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
     client.organizations().then((list) => {
       if (cancelled) return;
       setOrganizations(list);
-      setSelected((prev) => prev || (list.some((o) => o.id === organizationId) ? organizationId : list[0]?.id || null));
+      setSelected((prev) => prev || preselect(list, organizationId));
     }, (err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
   }, [client, organizationId, attempt]);
@@ -109,8 +110,8 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
       {organizations && organizations.length === 0 && <Alert tone="warning" icon="alert-triangle">{t('save.no_organizations')}</Alert>}
       {organizations && organizations.length > 1 && (
         <Field label={t('field.organization')}>
-          <Select block value={selected || ''} onChange={(value) => setSelected(value)}
-            options={organizations.map((o) => ({ value: o.id, label: o.name }))} />
+          <Select block value={selected || ''} onChange={(value) => setSelected(value || null)}
+            options={organizationOptions(organizations, selected, t)} />
         </Field>
       )}
       {selected && (

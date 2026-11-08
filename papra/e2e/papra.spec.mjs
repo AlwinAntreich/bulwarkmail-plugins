@@ -117,7 +117,10 @@ test.describe('papra plugin', () => {
       await saveToPapra(page);
       await connectKey(page);
       const dialog = page.frameLocator(SLOT).last();
-      await expect(dialog.getByRole('combobox')).toHaveValue(SECRETS.organizations.Alice);
+      // No default organisation yet: nothing preselected, Save waits for a choice.
+      await expect(dialog.getByRole('combobox')).toHaveValue('');
+      await expect(footerButton(page, 'Save')).toBeDisabled();
+      await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Alice);
       await expect(dialog.getByRole('checkbox', { name: 'Bulwark' })).toBeChecked();
       await dialog.getByRole('checkbox', { name: 'Invoice' }).click();
       await footerButton(page, 'Save').click();
@@ -128,6 +131,7 @@ test.describe('papra plugin', () => {
 
       // The same file again: Papra already has it.
       await saveToPapra(page);
+      await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Alice);
       await footerButton(page, 'Save').click();
       await expect(toast(page, `Papra already has ${pdfName}.`)).toBeVisible({ timeout: 60_000 });
 
@@ -158,6 +162,7 @@ test.describe('papra plugin', () => {
       await page.getByRole('menuitem', { name: 'From Papra' }).click();
       await connectKey(page);
       const picker = page.frameLocator(SLOT).last();
+      await picker.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await expect(picker.getByText('3 documents')).toBeVisible();
 
       // Tag filter: only the invoice.
@@ -194,6 +199,7 @@ test.describe('papra plugin', () => {
       await saveToPapra(page);
       await connectKey(page, { key: SECRETS.apiKeyWithoutTags });
       const dialog = page.frameLocator(SLOT).last();
+      await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Alice);
       await expect(dialog.getByText(/Your API key can't add tags/)).toBeVisible();
       await footerButton(page, 'Save').click();
       await expect(toast(page, `Saved ${run}.pdf to Alice in Papra.`)).toBeVisible({ timeout: 60_000 });

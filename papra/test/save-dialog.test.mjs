@@ -50,7 +50,7 @@ const save = () => screen.getByRole('button', { name: 'Save' });
 const press = async (el) => { await act(async () => { fireEvent.click(el); }); };
 
 describe('SaveDialog', () => {
-  it('starts with the remembered organisation, the admin\'s tags ticked and fixed', async () => {
+  it('starts with the user\'s default organisation, the admin\'s tags ticked and fixed', async () => {
     const { onResult } = await open();
     expect(screen.getByText('invoice.pdf (2.0 KB)')).toBeTruthy();
     expect(screen.getByRole('combobox').value).toBe('org_a');
@@ -71,9 +71,21 @@ describe('SaveDialog', () => {
     expect(onResult).toHaveBeenCalledWith({ organizationId: 'org_t', organizationName: 'Team', tagIds: [], missingDefaults: ['Bulwark'] });
   });
 
-  it('falls back to the first organisation by name when the remembered one is gone', async () => {
+  it('preselects nothing without a default, and saves only after the user picks', async () => {
+    const { onResult } = await open({ organizationId: null });
+    expect(screen.getByRole('combobox').value).toBe('');
+    expect(screen.getByRole('option', { name: 'Choose an organisation' })).toBeTruthy();
+    expect(save().disabled).toBe(true);
+    await press(save());
+    expect(onResult).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.change(screen.getByRole('combobox'), { target: { value: 'org_t' } }); });
+    expect(save().disabled).toBe(false);
+    expect(screen.queryByRole('option', { name: 'Choose an organisation' })).toBeNull();
+  });
+
+  it('preselects nothing when the default organisation is gone', async () => {
     await open({ organizationId: 'org_gone' });
-    expect(screen.getByRole('combobox').value).toBe('org_a');
+    expect(screen.getByRole('combobox').value).toBe('');
   });
 
   it('offers no tags with a key that can\'t tag, and says so', async () => {

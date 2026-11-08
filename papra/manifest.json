@@ -109,7 +109,8 @@
       "pick.partly": "Attached {count}, then stopped: {error}",
       "error.document_too_large": "{name} is larger than 25 MB and can't be attached from Papra.",
       "error.attach_refused": "The message can't take {name}; it may be too large for your mail server.",
-      "pick.count_one": "1 document"
+      "pick.count_one": "1 document",
+      "field.organization_choose": "Choose an organisation"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -178,7 +179,8 @@
       "pick.partly": "{count} angehängt, dann abgebrochen: {error}",
       "error.document_too_large": "{name} ist größer als 25 MB und kann nicht aus Papra angehängt werden.",
       "error.attach_refused": "Die Nachricht kann {name} nicht aufnehmen; vielleicht ist sie zu groß für Ihren Mailserver.",
-      "pick.count_one": "1 Dokument"
+      "pick.count_one": "1 Dokument",
+      "field.organization_choose": "Organisation wählen"
     }
   }
 }

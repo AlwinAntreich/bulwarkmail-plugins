@@ -10,8 +10,12 @@ import { parseTagList } from './tags.js';
 
 export const ACTION_SAVE = 'save-attachment';
 export const ACTION_ATTACH = 'from-papra';
-/** The organisation the user saved to last; the dialog starts with it. */
-export const ORGANIZATION_KEY = 'organizationId';
+/**
+ * The organisation the user chose as their default on the settings page.
+ * The dialogs preselect only this; the plugin never sets it by itself, so a
+ * save to a shared organisation doesn't make the next one go there too.
+ */
+export const DEFAULT_ORGANIZATION_KEY = 'defaultOrganizationId';
 /**
  * Below this a save is quick, and a spinner toast would only use up the
  * host's toast budget (5 per plugin in 10 seconds; past that they are
@@ -82,11 +86,10 @@ export function createBackground(api) {
           connection,
           canTag,
           defaultTags: parseTagList(config?.defaultTags),
-          organizationId: await api.storage.get(ORGANIZATION_KEY).catch(() => null),
+          organizationId: await api.storage.get(DEFAULT_ORGANIZATION_KEY).catch(() => null),
         },
       });
       if (!choice?.organizationId) return null;
-      await api.storage.set(ORGANIZATION_KEY, choice.organizationId).catch(() => {});
       const progress = attachment.size >= PROGRESS_FROM_BYTES ? await showProgress(t('save.saving', { name: attachment.name })) : null;
       let result;
       try {
@@ -130,12 +133,11 @@ export function createBackground(api) {
           view: 'pick',
           connection,
           canReadTags,
-          organizationId: await api.storage.get(ORGANIZATION_KEY).catch(() => null),
+          organizationId: await api.storage.get(DEFAULT_ORGANIZATION_KEY).catch(() => null),
         },
       });
       const documents = Array.isArray(choice?.documents) ? choice.documents : [];
       if (!choice?.organizationId || !documents.length) return null;
-      await api.storage.set(ORGANIZATION_KEY, choice.organizationId).catch(() => {});
       const total = documents.reduce((n, d) => n + (Number(d.size) || 0), 0);
       if (total >= PROGRESS_FROM_BYTES) progress = await showProgress(t('pick.attaching', { count: documents.length }));
       const attached = await attachDocuments({ api, client: clientFor(api, connection), organizationId: choice.organizationId, documents, composerId });
