@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Chip, DialogButtons, Field, LinkButton, List, ListRow, SearchInput, Select, Spinner, Stack, Text } from '@plugin-host/ui';
+import { Alert, Chip, DialogButtons, Field, LinkButton, List, ListRow, Row, SearchInput, Select, Spinner, Stack, Text } from '@plugin-host/ui';
 import { getApi, formatSize } from './host.js';
 import { clientFor } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
@@ -125,17 +125,23 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
           )}
           {tagFilters.length > 0 && (
             <div role="group" aria-label={t('pick.tag_filter')}>
-              {tagFilters.map((name) => (
-                <Chip key={name} label={name} onRemove={() => removeTag(name)} removeLabel={t('pick.remove_tag', { tag: name })} />
-              ))}
+              <Row gap={2}>
+                {tagFilters.map((name) => (
+                  <Chip key={name} label={name} onRemove={() => removeTag(name)} removeLabel={t('pick.remove_tag', { tag: name })} />
+                ))}
+              </Row>
             </div>
           )}
           {picked.size > 0 && (
             <div role="group" aria-label={t('pick.picked')}>
-              <Text tone="muted">{t('pick.picked')}</Text>
-              {[...picked.values()].map((doc) => (
-                <Chip key={doc.id} label={doc.name} onRemove={() => toggle(doc)} removeLabel={t('pick.unpick', { name: doc.name })} />
-              ))}
+              <Stack gap={2}>
+                <Text tone="muted">{t('pick.picked')}</Text>
+                <Row gap={2}>
+                  {[...picked.values()].map((doc) => (
+                    <Chip key={doc.id} label={doc.name} onRemove={() => toggle(doc)} removeLabel={t('pick.unpick', { name: doc.name })} />
+                  ))}
+                </Row>
+              </Stack>
             </div>
           )}
           {!results && !error && <Spinner size="sm" label={t('common.loading')} />}
