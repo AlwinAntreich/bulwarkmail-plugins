@@ -33,8 +33,8 @@ Create an API key in Papra with these permissions:
 | `documents:read` | searching and attaching documents |
 | `documents:create` | saving attachments |
 
-The key may cover all your organisations or only some. Connect it in
-Bulwark when the plugin asks for it. The key stays on the Bulwark server;
+A Papra key always covers all your organisations, private and shared.
+Connect it in Bulwark when the plugin asks for it. The key stays on the Bulwark server;
 the plugin never sees it.
 
 ## Permissions

@@ -9,7 +9,7 @@ describes the implementation and changes with it.
 | Part | State |
 |---|---|
 | Manifest, build, setup notes | done (step 2) |
-| Papra in `test-env/` | planned (step 3) |
+| Papra in `test-env/` | done (step 3); not yet tried through a webmail's plugin proxy |
 | Papra client, connection check | planned (step 4) |
 | Save to Papra | planned (step 5) |
 | From Papra | planned (step 6) |
@@ -72,6 +72,8 @@ and `email:blob-write` (From Papra), `ui:observe` (dialogs),
   with React and `@plugin-host` left to the host, as the extension
   directory builds it. `node scripts/build.mjs papra` at the root writes
   `papra.zip`; only `npm run release` commits it.
+- The test Papra runs in `test-env/` (`http://localhost:18012`, see
+  `test-env/README.md`); its API keys are in `test-env/.secrets/papra.json`.
 - Unit tests go to `test/*.test.mjs` (Vitest, `fakeApi`), end-to-end tests
   to `e2e/*.spec.mjs`. There are none yet; the hooks pass with
   `--passWithNoTests`.

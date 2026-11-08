@@ -50,6 +50,8 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - **The plugin never creates tags.** Tags are each organisation's vocabulary; a mail client creating them would spread duplicates and typos, and every key would need `tags:create`. The plugin picks from existing tags (`tags:read`); the admin creates the default tags in each organisation in Papra.
   - **Filtering in "From Papra"** uses Papra's search language: clicking a result's tag adds `tag:<name>` to the search, and a tag picker next to the search box lists the organisation's tags. Papra does the filtering.
   - **Key permissions for tagging:** the README asks for `tags:read` and `documents:update`. A key without them still saves, untagged, with a notice. Papra checks every request against the user's own membership, so `documents:update` gives the key nothing the user can't already do in Papra; the risk is only a key leaking from Bulwark's server.
+- **Tests never run against the production Bulwark** (`https://drive.antreich.com`, decided 2026-11-08). End-to-end tests need a webmail started for testing, with `PLUGIN_PROXY_PRIVATE_ORIGINS` listing the test Papra; the production instance can't reach `test-env/` anyway.
+- **Test environment** (step 3, 2026-11-08): Papra 26.7.1 on `http://localhost:18012`, seeded by `test-env/seed/seed_papra.py` (alice, organisations Alice and Team, tags with Bulwark only in Alice, five documents, a full key and one without tag permissions). See `test-env/README.md`.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -84,7 +86,10 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
 ### Papra API
 
 - Authentication: `Authorization: Bearer <api key>`.
-- API keys look like `ppapi_` plus 64 letters and digits. Keys can be limited to selected organisations or cover all (`allOrganizations`).
+- API keys look like `ppapi_` plus 64 letters and digits. **Every key covers all of the user's organisations:** limiting a key to some is commented out in `api-keys/api-keys.routes.ts`, and new keys get `allOrganizations: true` (checked against Papra 26.7.1 in `test-env/`).
+- `GET /api/api-keys/current` returns the key's id, name and permissions, and needs no permission. The plugin can check a key when it is connected and know whether it may tag.
+- A wrong key and a key that lacks the permission for a request both get **401** `auth.unauthorized`; the status doesn't tell them apart, `/api/api-keys/current` does.
+- Tagging a document answers 204 with no body.
 - Routes and the key permission each needs (checked on `main`, 2026-11-08, in `apps/papra-server/src/modules/`):
   - `GET /api/organizations` → `{ organizations }`, the user's organisations (`organizations:read`; `organizations/organizations.api.routes.ts`)
   - `GET /api/organizations/:organizationId/documents` with query `searchQuery`, `pageIndex`, `pageSize` (at most 100), `sortField`, `sortOrder` → `{ documents, documentsCount }`: list and full-text search (`documents:read`)
@@ -136,11 +141,11 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 ## Work plan
 
-Status: steps 1 and 2 are done (branch `papra/scaffold`); how the plugin is built so far is in [architecture.md](architecture.md).
+Status: steps 1 to 3 are done (branches `papra/scaffold`, `papra/test-env`); how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
-3. Add Papra to `test-env/` and confirm it starts and is reachable by the plugin proxy.
+3. Add Papra to `test-env/` and confirm it starts and is reachable by the plugin proxy. Done, except the proxy: Papra starts, the seed runs twice cleanly, and the seeded keys list organisations, search (`tag:invoice`, words), list tags and download files; a key without the tag permissions gets 401 on tags. Reaching it through Bulwark's plugin proxy needs a webmail with `PLUGIN_PROXY_PRIVATE_ORIGINS`; that check comes with the first end-to-end test.
 4. Papra client module with unit tests: list organisations, search, upload, download.
 5. "Save to Papra" on attachments, with tests.
 6. "Attach from Papra" in the composer, with tests.
