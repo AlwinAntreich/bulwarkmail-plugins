@@ -1,0 +1,95 @@
+# Local gates for the Papra plugin work in this fork. Not for upstream:
+# bulwarkmail/plugins has no hooks; leave this file out of upstream branches.
+#
+# Setup, once per clone (Node 24, as in CI):
+#   pipx install pre-commit
+#   npm ci && (cd smime && npm ci)
+#   pre-commit install
+#
+# On every commit: the manifest/publish.json check, the Papra unit tests,
+# no CLAUDE.md, and the message checks (.githooks/, from croitutils).
+# On every push: what CI runs (all unit tests, check, isolated builds).
+# By hand:
+#   pre-commit run --hook-stage manual docs-check   # needs BULWARK_WEBMAIL
+#   pre-commit run --hook-stage manual e2e          # needs test-env and a webmail
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+repos:
+  - repo: local
+    hooks:
+      - id: check
+        name: manifests, versions, lockfiles and publish.json
+        entry: npm run --silent check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, pre-push]
+
+      - id: test-papra
+        name: Papra unit tests
+        entry: npm test -- --passWithNoTests papra/
+        language: system
+        pass_filenames: false
+        files: ^(papra/|test-utils/|vitest\.config\.mjs$|package(-lock)?\.json$)
+        stages: [pre-commit]
+
+      - id: no-claude-md
+        name: No CLAUDE.md
+        entry: CLAUDE.md hides AGENTS.md from Claude Code; use AGENTS.md
+        language: fail
+        files: (^|/)CLAUDE\.md$
+        stages: [pre-commit]
+
+      - id: commit-msg-trailers
+        name: Reject AI attribution in commit messages
+        entry: node .githooks/commit-msg-trailers.mjs
+        language: system
+        stages: [commit-msg]
+
+      - id: commit-msg-format
+        name: 'Subject is a Conventional Commit without a scope'
+        entry: node .githooks/commit-msg-format.mjs
+        language: system
+        stages: [commit-msg]
+
+      - id: node-version
+        name: Node 24 or later, as in CI
+        entry: >-
+          node -e "const v = +process.versions.node.split('.')[0];
+          if (v < 24) { console.error('Node 24 or later is needed, as in CI (npm 9 cannot read the lockfiles); found ' + process.version); process.exit(1); }"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: test-all
+        name: all unit tests
+        entry: npm test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: build-isolated
+        name: every plugin built on its own
+        entry: npm run --silent build:isolated
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docs-check
+        name: generated reference tables
+        entry: npm run --silent docs:check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [manual]
+
+      - id: e2e
+        name: end-to-end tests
+        entry: npm run test:e2e
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [manual]
