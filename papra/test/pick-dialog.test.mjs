@@ -79,6 +79,19 @@ describe('PickDialog', () => {
     });
   });
 
+  it('keeps picked documents in view when a new search hides them, and can drop them there', async () => {
+    const { searches } = await open();
+    await press(row('acme-invoice.pdf'));
+    await act(async () => { fireEvent.change(screen.getByRole('searchbox', { name: 'Search documents' }), { target: { value: 'contract' } }); });
+    await waitFor(() => expect(searches.at(-1)?.searchQuery).toBe('contract'));
+    await waitFor(() => expect(screen.queryAllByRole('listitem').some((r) => r.textContent.includes('acme-invoice.pdf'))).toBe(false));
+    const picked = screen.getByRole('group', { name: 'Picked' });
+    expect(picked.textContent).toContain('acme-invoice.pdf');
+    await press(screen.getByRole('button', { name: 'Remove acme-invoice.pdf' }));
+    expect(screen.queryByRole('group', { name: 'Picked' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Attach' }).disabled).toBe(true);
+  });
+
   it('waits for the user to pick an organisation when there is no default', async () => {
     const { api, searches } = makeApi();
     await act(async () => {

@@ -130,6 +130,14 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
               ))}
             </div>
           )}
+          {picked.size > 0 && (
+            <div role="group" aria-label={t('pick.picked')}>
+              <Text tone="muted">{t('pick.picked')}</Text>
+              {[...picked.values()].map((doc) => (
+                <Chip key={doc.id} label={doc.name} onRemove={() => toggle(doc)} removeLabel={t('pick.unpick', { name: doc.name })} />
+              ))}
+            </div>
+          )}
           {!results && !error && <Spinner size="sm" label={t('common.loading')} />}
           {results && results.documents.length === 0 && <Text tone="muted">{t('pick.none')}</Text>}
           {results && results.documents.length > 0 && (
