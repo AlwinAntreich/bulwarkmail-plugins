@@ -9,7 +9,8 @@ OCR and full-text search:
   the message.
 
 Work in progress: this version sets up the connection only. The plan and
-the decisions are in [docs/PLAN.md](docs/PLAN.md).
+the decisions are in [docs/PLAN.md](docs/PLAN.md), how it is built in
+[docs/architecture.md](docs/architecture.md).
 
 ## Setup for the admin
 

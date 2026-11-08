@@ -39,9 +39,17 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - The server is the admin config field `serverUrl` (`configSchema`), read with `api.config.get()` (no permission needed). Without it the plugin shows "not set up" and does nothing.
   - Bulwark can't tie a user-scope credential to an admin config field today: `originKey` exists for admin scope only, and a user-scope credential has a fixed `origin` in the manifest or the one the user enters (`lib/plugin-secrets/credentials.ts`). So the plugin checks it: it passes the admin's server to `api.proxy.connect`, sends requests only to that server, and treats a credential for any other origin as not connected (and disconnects it). The proxy only adds the key on requests to the credential's own origin, so the plugin never talks to another server.
   - **This check is not a security boundary.** It stops mistakes (a mistyped or phished address) and keeps documents in the admin's Papra. It does not stop a user who wants another server: the host still stores a credential for any https origin the user enters, and `/api/plugin-proxy` accepts same-origin calls from the signed-in host page, so the user can send requests through Bulwark's server to their own origin from the browser console. Mail they can read they can download anyway; what they gain is Bulwark's server as a relay. Only the host can close that: a fixed `origin` in the manifest (ties the plugin to one server), or the upstream change below.
-  - Later, upstream: a pull request to Bulwark that lets a user-scope credential take its origin from `originKey` would move the check into the host, where it is enforced.
+  - **Upstream change postponed** (decided 2026-11-08): a pull request to Bulwark that lets a user-scope credential take its origin from `originKey` would move the check into the host, where it is enforced. Recorded here; not pursued now. Until then the plugin-side check stays, and the manifest keeps no fixed `origin` (that would tie the plugin to one server).
 - **One organisation at a time** (decided 2026-11-08). The user sets a default organisation in the plugin's settings and switches on demand in the "Save to Papra" and "From Papra" dialogs. No search across all organisations: Papra searches one organisation per request.
 - **Default tags set by the admin** (decided 2026-11-08), for example a tag that marks where the document came from. Documents saved from Bulwark get these tags. Details are in "Open questions for the owner"; the admin field arrives with "Save to Papra", not before.
+- **Decisions taken while scaffolding** (step 2, 2026-11-08):
+  - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
+  - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
+  - `package.json` is written fresh (build and test scripts, esbuild only), with the build flags Bulwark's checks and the extension directory expect (same as `paperless/`).
+  - `papra.zip` is not committed in feature work; `npm run release` builds it.
+  - `publish.json` lists `papra` under `skip` until the first release.
+  - The fork-only files (`AGENTS.md`, `CONTRIBUTING.md`, `.claude/`, the root `.pre-commit-config.yaml` and `.githooks/`) are separate commits, left out of any upstream branch.
+  - The pre-commit Papra test hook runs `npm test -- --passWithNoTests papra/`, like Bulwark's publish workflow, so it passes while papra has no tests yet.
 - **Multiple organisations:** a Papra user can belong to several organisations, private or shared. The plugin lists the organisations the key can access, lets the user set a default in the plugin's settings (non-secret), and allows choosing per action.
 - **No secrets in user settings or `api.storage`** (both are unencrypted in the browser). Only the credential holds the key.
 - **No changes to Papra.** Use its public API only. If something is missing, note it as a separate proposal for the Papra project; do not patch Papra in this repository.
@@ -108,14 +116,16 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
   - `npm run check`
   - `npm test`
   - `npm run test:e2e`
-  - `npm run docs` and `npm run docs:check` (regenerates the reference tables, including the plugin table in the root README)
-- **Permissions:** request only what is used. List them in the root README table (generated).
+  - `npm run docs` and `npm run docs:check` (regenerates the reference tables in `WRITING_PLUGINS.md`; needs the webmail checkout in `BULWARK_WEBMAIL`)
+- **Permissions:** request only what is used. The plugin table in the root README is written by hand; add the row at the first release.
 - **Tests:** unit tests for the Papra client (request building, error mapping, organisation handling) with mocked proxy responses; e2e tests against a Papra service in `test-env/`.
 - **Test environment:** add a Papra service to `test-env/` alongside the existing services (Stalwart, Paperless-ngx, …), seeded with a test user, two organisations and an API key.
 - **Commits:** small and focused, in the style of the repository's history. Keep the CHANGELOG current.
 - **KISS/YAGNI:** no features beyond version 1 without asking. If a step needs more than the plan says, stop and ask.
 
 ## Work plan
+
+Status: steps 1 and 2 are done (branch `papra/scaffold`); how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
@@ -138,5 +148,5 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 - Default tags, a tag that doesn't exist in the target organisation: skip it and tell the user which one (recommended: the users' keys then need no `tags:create`), or create it?
 - Default tags need `tags:read` and `documents:update` on each user's key, and `documents:update` lets the key change any document in its organisations. Accept that, or tag only when the key allows it and otherwise save untagged with a notice (recommended: the README asks for both permissions, and a key without them still saves, with a notice)?
-- Server lock: until Bulwark supports `originKey` for user credentials, accept the plugin-side check, or pin `origin` in the manifest for your own deployment (recommended: accept the check now, propose the Bulwark change upstream)?
+- Tags in Bulwark: Papra's search results carry each document's tags (`tags` from `enrichAndFormatDocumentsForApi`), so "From Papra" can show them in the result list. Show them (recommended), and should users also choose tags when they save, on top of the admin's default tags (today "Not in version 1")?
 - Upstream: after checking the AI policy, open a pull request or keep it in the fork?
