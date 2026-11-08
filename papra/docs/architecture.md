@@ -181,7 +181,8 @@ composer Attach menu ── onAction (background.js), context { composerId }
   how it read one, so the plugin doesn't parse queries; when a search with
   a filter finds nothing, it says to check the filters.
 - **Quick filters:** the organisation's six most-used tags (by Papra's
-  `documentsCount`; needs `tags:read`), "This year" (`date:>=YYYY`) and
+  `documentsCount`; needs `tags:read`), "Added this year" (`created:>=YYYY`:
+  many documents have no document date, so `date:` would miss them) and
   "Untagged" (`-has:tags`). A chip adds its term, ticked, or removes it.
   **Search tips** (collapsed) list common forms; a click adds one; the last
   line opens Papra's guide.

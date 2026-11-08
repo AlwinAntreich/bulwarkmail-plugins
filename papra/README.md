@@ -109,8 +109,8 @@ Writing a message, open **Attach** and choose **From Papra**. The search
 box takes Papra's search language as is: words, `tag:invoice`,
 `name:offer`, `content:"order 4711"`, `date:>=2026`, `-tag:archived`,
 `(tag:a OR tag:b)` and more ([Papra's guide](https://docs.papra.app/guides/advanced-search/)).
-The quick filters under it (your organisation's most-used tags, This year,
-Untagged) add a term to the search or take it out again, and **Search
+The quick filters under it (your organisation's most-used tags, Added this
+year, Untagged) add a term to the search or take it out again, and **Search
 tips** lists common forms to click. Tick the documents and press
 **Attach**; picked documents stay listed above the results while you
 search on.

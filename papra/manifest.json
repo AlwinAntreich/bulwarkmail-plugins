@@ -134,7 +134,6 @@
       "pick.quick": "Quick filters",
       "pick.quick_add": "Add {term} to the search",
       "pick.quick_remove": "Remove {term} from the search",
-      "pick.this_year": "This year",
       "pick.untagged": "Untagged",
       "pick.tips": "Search tips",
       "pick.tips_hide": "Hide search tips",
@@ -147,7 +146,8 @@
       "pick.tip_not": "not tagged Archived",
       "pick.tip_or": "one tag or the other",
       "pick.tip_untagged": "without any tag",
-      "pick.none_filters": "No documents found. Check the filters in your search: Papra finds nothing for a filter it doesn’t understand."
+      "pick.none_filters": "No documents found. Check the filters in your search: Papra finds nothing for a filter it doesn’t understand.",
+      "pick.added_this_year": "Added this year"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -233,7 +233,6 @@
       "pick.quick": "Schnellfilter",
       "pick.quick_add": "{term} zur Suche hinzufügen",
       "pick.quick_remove": "{term} aus der Suche entfernen",
-      "pick.this_year": "Dieses Jahr",
       "pick.untagged": "Ohne Tags",
       "pick.tips": "Suchtipps",
       "pick.tips_hide": "Suchtipps ausblenden",
@@ -246,7 +245,8 @@
       "pick.tip_not": "ohne den Tag Archived",
       "pick.tip_or": "der eine oder der andere Tag",
       "pick.tip_untagged": "ganz ohne Tags",
-      "pick.none_filters": "Keine Dokumente gefunden. Prüfen Sie die Filter in Ihrer Suche: Einen Filter, den Papra nicht versteht, findet es nicht."
+      "pick.none_filters": "Keine Dokumente gefunden. Prüfen Sie die Filter in Ihrer Suche: Einen Filter, den Papra nicht versteht, findet es nicht.",
+      "pick.added_this_year": "Dieses Jahr abgelegt"
     }
   }
 }

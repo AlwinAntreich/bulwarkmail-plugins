@@ -123,7 +123,8 @@ export function PickDialog({ api = getApi(), connection, canReadTags = false, or
   const quick = [
     ...[...orgTags].filter((tag) => tag.count > 0).sort((a, b) => b.count - a.count).slice(0, QUICK_TAGS)
       .map((tag) => ({ key: tag.id, label: tag.name, detail: String(tag.count), term: tagTerm(tag.name) })),
-    { key: 'year', label: t('pick.this_year'), term: `date:>=${year}` },
+    // Added this year: many documents have no document date, so date: would miss them.
+    { key: 'year', label: t('pick.added_this_year'), term: `created:>=${year}` },
     { key: 'untagged', label: t('pick.untagged'), term: '-has:tags' },
   ];
 

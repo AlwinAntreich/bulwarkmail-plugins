@@ -120,7 +120,7 @@ describe('PickDialog', () => {
   it('offers the most-used tags as quick filters that add and remove a term', async () => {
     const { searches } = await open();
     const chips = screen.getByRole('group', { name: 'Quick filters' });
-    expect([...chips.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Tax 20259', 'Invoice3', 'This year', 'Untagged']);
+    expect([...chips.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Tax 20259', 'Invoice3', 'Added this year', 'Untagged']);
     const search = screen.getByRole('searchbox', { name: 'Search documents' });
     await act(async () => { fireEvent.change(search, { target: { value: 'acme' } }); });
     await press(screen.getByTitle('Add tag:"Tax 2025" to the search'));
@@ -130,6 +130,8 @@ describe('PickDialog', () => {
     expect(search.value).toBe('acme');
     await press(screen.getByTitle('Add -has:tags to the search'));
     expect(search.value).toBe('acme -has:tags');
+    await press(screen.getByTitle(`Add created:>=${new Date().getFullYear()} to the search`));
+    expect(search.value).toBe(`acme -has:tags created:>=${new Date().getFullYear()}`);
   });
 
   it('shows search tips that add a term, and links to Papra\'s guide', async () => {
@@ -164,7 +166,7 @@ describe('PickDialog', () => {
 
   it('offers no tag chips when the key can\'t read tags', async () => {
     const { api } = await open({ canReadTags: false });
-    expect([...screen.getByRole('group', { name: 'Quick filters' }).querySelectorAll('button')].map((b) => b.textContent)).toEqual(['This year', 'Untagged']);
+    expect([...screen.getByRole('group', { name: 'Quick filters' }).querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Added this year', 'Untagged']);
     expect(api.calls('proxy.fetch').some((c) => c.args[1].endsWith('/tags'))).toBe(false);
   });
 });
