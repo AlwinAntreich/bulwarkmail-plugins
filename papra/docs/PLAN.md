@@ -44,6 +44,12 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
 - **Default tags set by the admin** (decided 2026-11-08), for example a tag that marks where the document came from. Documents saved from Bulwark get these tags. The admin field arrives with "Save to Papra", not before.
   - A default tag that doesn't exist in the target organisation is skipped, and the user is told which one (decided 2026-11-08). The plugin creates no tags, so the users' keys need no `tags:create`.
 - **Tags shown and chosen in Bulwark** (decided 2026-11-08). "From Papra" shows each result's tags (Papra's search returns them). "Save to Papra" lets the user add tags from the target organisation on top of the admin's default tags.
+- **Who tags what** (decided 2026-11-08):
+  - Content-based tagging belongs in Papra's own tagging rules (they match on the document's name or extracted text). The plugin doesn't duplicate it.
+  - The plugin tags only what Papra can't see: where the document came from (the admin's default tags) and the user's own choice when saving.
+  - **The plugin never creates tags.** Tags are each organisation's vocabulary; a mail client creating them would spread duplicates and typos, and every key would need `tags:create`. The plugin picks from existing tags (`tags:read`); the admin creates the default tags in each organisation in Papra.
+  - **Filtering in "From Papra"** uses Papra's search language: clicking a result's tag adds `tag:<name>` to the search, and a tag picker next to the search box lists the organisation's tags. Papra does the filtering.
+  - **Key permissions for tagging:** the README asks for `tags:read` and `documents:update`. A key without them still saves, untagged, with a notice. Papra checks every request against the user's own membership, so `documents:update` gives the key nothing the user can't already do in Papra; the risk is only a key leaking from Bulwark's server.
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -89,6 +95,8 @@ Read `WRITING_PLUGINS.md` in the repository first; it is the authoritative refer
   - `POST /api/organizations/:organizationId/documents/:documentId/tags` with a tag id: tag a document (`documents:update` and `tags:read`)
   - `POST /api/organizations/:organizationId/tags`: create a tag (`tags:create`)
 - Tags belong to one organisation; the upload takes no tags, so tagging is a second request after it.
+- Search language (Papra's advanced search guide): `tag:invoice`, `has:tags`, `has:date`, combined with words and dates, passed in `searchQuery`.
+- Tagging rules (`tagging-rules/tagging-rules.constants.ts`) match on the fields `name` and `content` with `equal`, `not_equal`, `contains`, `not_contains`, `starts_with`, `ends_with`, all or any conditions.
 - Papra extracts text (with Tesseract OCR for images and scanned PDF pages) from PDF, images, DOC, ODT/ODS/ODP, PPTX, XLSX, RTF and plain text.
 
 ## Scope
@@ -149,5 +157,4 @@ Status: steps 1 and 2 are done (branch `papra/scaffold`); how the plugin is buil
 
 ## Open questions for the owner
 
-- Tagging (the admin's default tags and the user's own) needs `tags:read` and `documents:update` on each user's key, and `documents:update` also lets the key change the name, date, notes and extracted text of any document in its organisations, and tag or untag it (not delete it: that is `documents:delete`). Ask for both in the README and save untagged with a notice when a key lacks them (recommended), or require them?
 - Upstream: after checking the AI policy, open a pull request or keep it in the fork?
