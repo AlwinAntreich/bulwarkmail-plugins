@@ -54,8 +54,6 @@
       "save.no_organizations": "Your API key sees no organisation in Papra.",
       "done.saved": "Saved {name} to {organization} in Papra.",
       "done.duplicate": "Papra already has {name}.",
-      "done.missing_tags": "{name} has no tag {tags}: {organization} has no such tag.",
-      "done.tag_failed": "{name} is saved, but adding its tags failed: {error}",
       "connect.title": "Connect Papra",
       "connect.needed": "Connect your Papra API key to save documents to {host}.",
       "connect.wrong_server": "Your Papra key was connected to {server}, but documents go to {host}. Connect the key to {host}.",
@@ -85,7 +83,10 @@
       "error.not_papra": "The answer didn't come from Papra. Ask your administrator to check the server URL.",
       "error.unexpected": "Something went wrong: {detail}",
       "error.cancelled": "Cancelled.",
-      "error.permission": "The plugin lacks a permission in Bulwark for this."
+      "error.permission": "The plugin lacks a permission in Bulwark for this.",
+      "save.saving": "Saving {name} to Papra…",
+      "done.saved_missing_tags": "Saved {name} to {organization} in Papra, without the tag {tags}: {organization} has no such tag.",
+      "done.saved_tag_failed": "Saved {name} to {organization} in Papra, but adding its tags failed: {error}"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -101,8 +102,6 @@
       "save.no_organizations": "Ihr API-Schlüssel sieht keine Organisation in Papra.",
       "done.saved": "{name} in {organization} in Papra gespeichert.",
       "done.duplicate": "Papra hat {name} bereits.",
-      "done.missing_tags": "{name} hat den Tag {tags} nicht: {organization} hat keinen solchen Tag.",
-      "done.tag_failed": "{name} ist gespeichert, aber die Tags konnten nicht vergeben werden: {error}",
       "connect.title": "Papra verbinden",
       "connect.needed": "Verbinden Sie Ihren Papra-API-Schlüssel, um Dokumente auf {host} zu speichern.",
       "connect.wrong_server": "Ihr Papra-Schlüssel war mit {server} verbunden, die Dokumente gehen aber nach {host}. Verbinden Sie den Schlüssel mit {host}.",
@@ -132,7 +131,10 @@
       "error.not_papra": "Die Antwort kam nicht von Papra. Bitten Sie Ihre Administration, die Server-URL zu prüfen.",
       "error.unexpected": "Etwas ist schiefgelaufen: {detail}",
       "error.cancelled": "Abgebrochen.",
-      "error.permission": "Dem Plugin fehlt dafür eine Berechtigung in Bulwark."
+      "error.permission": "Dem Plugin fehlt dafür eine Berechtigung in Bulwark.",
+      "save.saving": "{name} wird in Papra gespeichert …",
+      "done.saved_missing_tags": "{name} in {organization} in Papra gespeichert, ohne den Tag {tags}: {organization} hat keinen solchen Tag.",
+      "done.saved_tag_failed": "{name} in {organization} in Papra gespeichert, aber die Tags konnten nicht vergeben werden: {error}"
     }
   }
 }

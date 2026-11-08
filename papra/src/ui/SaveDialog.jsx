@@ -69,7 +69,7 @@ export function SaveDialog({ api = getApi(), attachment = {}, connection, canTag
 
   return (
     <Stack gap={4}>
-      <Text tone="muted" truncate>{t('save.file', { name: attachment.name || '', size: formatSize(attachment.size) })}</Text>
+      <Text tone="muted">{t('save.file', { name: attachment.name || '', size: formatSize(attachment.size) })}</Text>
       {error && (
         <Alert tone="danger" icon="alert-circle" action={<LinkButton onClick={() => setAttempt((n) => n + 1)}>{t('common.retry')}</LinkButton>}>
           {errorText(t, error)}

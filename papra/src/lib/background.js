@@ -9,6 +9,12 @@ import { parseTagList } from './tags.js';
 export const ACTION_SAVE = 'save-attachment';
 /** The organisation the user saved to last; the dialog starts with it. */
 export const ORGANIZATION_KEY = 'organizationId';
+/**
+ * Below this a save is quick, and a spinner toast would only use up the
+ * host's toast budget (5 per plugin in 10 seconds; past that they are
+ * dropped, the result too).
+ */
+export const PROGRESS_FROM_BYTES = 1024 * 1024;
 
 const hostOf = (url) => {
   try { return new URL(url).host; } catch { return String(url || ''); }
@@ -41,6 +47,20 @@ export function createBackground(api) {
     return { connection, canTag };
   }
 
+  /** A toast with a spinner while a save runs (large attachments take a while); null when the host has none to give. */
+  async function showProgress(text) {
+    try {
+      const id = await api.toast.progress(text);
+      return typeof id === 'string' ? id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function hideProgress(id) {
+    if (id) Promise.resolve().then(() => api.toast.dismiss(id)).catch(() => {});
+  }
+
   async function saveFlow(context) {
     const attachment = attachmentOf(context);
     if (!attachment) return null;
@@ -64,9 +84,15 @@ export function createBackground(api) {
       });
       if (!choice?.organizationId) return null;
       await api.storage.set(ORGANIZATION_KEY, choice.organizationId).catch(() => {});
-      const result = await saveAttachment({
-        api, client: clientFor(api, connection), attachment, organizationId: choice.organizationId, tagIds: canTag ? choice.tagIds || [] : [],
-      });
+      const progress = attachment.size >= PROGRESS_FROM_BYTES ? await showProgress(t('save.saving', { name: attachment.name })) : null;
+      let result;
+      try {
+        result = await saveAttachment({
+          api, client: clientFor(api, connection), attachment, organizationId: choice.organizationId, tagIds: canTag ? choice.tagIds || [] : [],
+        });
+      } finally {
+        hideProgress(progress);
+      }
       report(attachment, choice, result);
       return result;
     } catch (err) {
@@ -77,11 +103,12 @@ export function createBackground(api) {
     }
   }
 
+  /** One toast per save, so a warning isn't dropped by the host's toast budget. */
   function report(attachment, choice, { tagError }) {
     const vars = { name: attachment.name, organization: choice.organizationName || '' };
-    api.toast.success(t('done.saved', vars));
-    if (tagError) api.toast.warning(t('done.tag_failed', { name: attachment.name, error: errorText(t, tagError) }));
-    else if (choice.missingDefaults?.length) api.toast.warning(t('done.missing_tags', { ...vars, tags: choice.missingDefaults.join(', ') }));
+    if (tagError) api.toast.warning(t('done.saved_tag_failed', { ...vars, error: errorText(t, tagError) }));
+    else if (choice.missingDefaults?.length) api.toast.warning(t('done.saved_missing_tags', { ...vars, tags: choice.missingDefaults.join(', ') }));
+    else api.toast.success(t('done.saved', vars));
   }
 
   /** onAction: start the flow and return at once (the host times hooks out). */

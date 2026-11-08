@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { createBackground, ACTION_SAVE, ORGANIZATION_KEY } from '../src/lib/background.js';
+import { createBackground, ACTION_SAVE, ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const SERVER = 'https://papra.example.com';
@@ -15,6 +15,7 @@ const choice = { organizationId: 'org_a', organizationName: 'Alice', tagIds: ['t
 function setup({
   config = { serverUrl: SERVER, defaultTags: 'Bulwark, Email' }, connected = true, permissions = FULL,
   dialog = () => choice, confirm = () => true, upload = () => proxyResponse('{"document":{"id":"doc_1","name":"invoice.pdf"}}'),
+  tag = () => ({ status: 204, ok: true, headers: {}, body: '' }),
 } = {}) {
   let accounts = connected ? [{ credentialId: 'papra', origin: SERVER, connected: true }] : [];
   return fakeApi({
@@ -28,12 +29,13 @@ function setup({
         const path = new URL(url).pathname;
         if (path === '/api/api-keys/current') return proxyResponse(JSON.stringify({ apiKey: { id: 'ak', name: 'k', permissions } }));
         if (path === '/api/organizations/org_a/documents' && init.method === 'POST') return upload();
-        if (path.endsWith('/tags') && init.method === 'POST') return { status: 204, ok: true, headers: {}, body: '' };
+        if (path.endsWith('/tags') && init.method === 'POST') return tag();
         return { status: 404, ok: false, headers: {}, body: '' };
       },
       'ui.openDialog': dialog,
       'ui.confirm': confirm,
       'email.getAttachment': () => pdf,
+      'toast.progress': () => 'progress-1',
     },
   });
 }
@@ -72,6 +74,22 @@ describe('saving an attachment', () => {
     expect(await api.storage.get(ORGANIZATION_KEY)).toBe('org_a');
   });
 
+  it('shows a progress toast while saving a large file, and takes it away also when saving fails', async () => {
+    const large = { ...click, context: { ...click.context, size: PROGRESS_FROM_BYTES } };
+    const small = setup();
+    await createBackground(small).onAction(click);
+    expect(toasts(small, 'progress')).toEqual([]);
+    const api = setup();
+    await createBackground(api).onAction(large);
+    expect(toasts(api, 'progress')).toEqual(['Saving invoice.pdf to Papra…']);
+    expect(api.calls('toast.dismiss').map((c) => c.args[0])).toEqual(['progress-1']);
+    const failing = setup({ upload: () => ({ status: 500, ok: false, headers: {}, body: '' }) });
+    await createBackground(failing).onAction(large);
+    await Promise.resolve();
+    expect(failing.calls('toast.dismiss')).toHaveLength(1);
+    expect(toasts(failing, 'error')).toEqual(['Papra had an internal error.']);
+  });
+
   it('tags nothing with a key that can\'t tag', async () => {
     const api = setup({ permissions: NO_TAGS });
     await createBackground(api).onAction(click);
@@ -83,7 +101,8 @@ describe('saving an attachment', () => {
   it('says which default tags the organisation lacks', async () => {
     const api = setup({ dialog: () => ({ ...choice, tagIds: ['t1'], missingDefaults: ['Email'] }) });
     await createBackground(api).onAction(click);
-    expect(toasts(api, 'warning')).toEqual(['invoice.pdf has no tag Email: Alice has no such tag.']);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra, without the tag Email: Alice has no such tag.']);
+    expect(toasts(api, 'success')).toEqual([]);
   });
 
   it('says so when Papra already has the file', async () => {
@@ -127,6 +146,13 @@ describe('saving an attachment', () => {
     await createBackground(api).onAction(click);
     expect(toasts(api, 'error')).toEqual(['The API key lacks these permissions: organizations:read, documents:create. Create a key with them in Papra.']);
     expect(api.calls('ui.openDialog')).toHaveLength(0);
+  });
+
+  it('says in its one toast that tagging failed after the upload', async () => {
+    const api = setup({ tag: () => ({ status: 500, ok: false, headers: {}, body: '' }) });
+    await createBackground(api).onAction(click);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra, but adding its tags failed: Papra had an internal error.']);
+    expect(toasts(api, 'success')).toEqual([]);
   });
 
   it('ignores other actions and clicks without an attachment', async () => {
