@@ -165,10 +165,15 @@ test.describe('papra plugin', () => {
       await picker.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await expect(picker.getByText('3 documents')).toBeVisible();
 
-      // Tag filter: only the invoice.
-      await picker.getByLabel('Filter by tag').selectOption('Invoice');
+      // Quick filter: only the invoice; the term shows in the search box.
+      await picker.getByTitle('Add tag:"Invoice" to the search').click();
+      await expect(picker.getByRole('searchbox', { name: 'Search documents' })).toHaveValue('tag:"Invoice"');
       await expect(picker.getByText('1 document', { exact: true })).toBeVisible();
-      await picker.getByRole('button', { name: 'Remove filter Invoice' }).click();
+      await picker.getByTitle('Remove tag:"Invoice" from the search').click();
+
+      // Papra's own syntax, typed: either tag.
+      await picker.getByRole('searchbox', { name: 'Search documents' }).fill('tag:invoice OR tag:contract');
+      await expect(picker.getByText('2 documents', { exact: true })).toBeVisible();
 
       // Full-text search: the contract, by a word in its text.
       await picker.getByRole('searchbox', { name: 'Search documents' }).fill('Valid');
