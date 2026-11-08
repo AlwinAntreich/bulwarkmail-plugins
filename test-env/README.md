@@ -1,7 +1,7 @@
 # Plugin test environment
 
 Local Docker services for testing the Bulwark plugins end to end: Stalwart for
-mail, JMAP and CalDAV, Nextcloud, Paperless-ngx, Vikunja, Donetick, a mock
+mail, JMAP and CalDAV, Nextcloud, Paperless-ngx, Papra, Vikunja, Donetick, a mock
 server for the paid APIs (Anthropic, OpenAI, Todoist, 17TRACK, DHL) and,
 optionally, Ollama.
 Everything runs on your machine.
@@ -41,6 +41,7 @@ them together with the volumes.
 | Stalwart (JMAP, CalDAV, SMTP) | http://localhost:18025, SMTP submission `localhost:11587` | built from `stalwart/` (`stalwartlabs/stalwart:v0.16`) | `alice@example.org`, `bob@example.org`, `carol@example.org`, password `test-pass-123` | `caldav.json` |
 | Nextcloud | http://localhost:18080 | `nextcloud:34.0.4-apache` | `admin` / `admin-pass-123`, `alice` / `alice-pass-123` plus an app password | `nextcloud.json` |
 | Paperless-ngx | http://localhost:18010 | `ghcr.io/paperless-ngx/paperless-ngx:3.2.1`, `redis:8.2.10-alpine` | `admin` / `admin-pass-123` plus an API token | `paperless.json` |
+| Papra | http://localhost:18012 | `ghcr.io/papra-hq/papra:26.7.1-rootless` | `alice@example.org` / `alice-pass-123` plus two API keys | `papra.json` |
 | Vikunja | http://localhost:18456 | `vikunja/vikunja:2.6.0` | `alice` / `alice-pass-123` plus an API token | `vikunja.json` |
 | Donetick | http://localhost:18021 | `donetick/donetick:v0.1.85` | `alice` / `alice-pass-123` plus an access token | `donetick.json` |
 | Mock APIs | http://localhost:18099 | `python:3.13.16-alpine` | fixed keys, see [mocks/README.md](mocks/README.md) | none |
@@ -114,6 +115,27 @@ already have a text layer, are consumed in seconds. Seeded:
 
 The API token goes in the header `Authorization: Token <token>`.
 
+### Papra
+
+SQLite and the document files in the `papra-data` volume. Sign-up is on and
+email verification off (Papra's defaults), so the seed signs alice up like a
+user would; as the first user she is also Papra's admin. Seeded:
+
+- organisations Alice and Team
+- tags Bulwark, Invoice and Contract in Alice, only Invoice in Team (the
+  Papra plugin skips a default tag the organisation lacks, and tests need
+  that case)
+- five PDF documents, some tagged, so search and `tag:invoice` find
+  something in both organisations
+- two API keys: `apiKey` with `organizations:read`, `documents:read`,
+  `documents:create`, `documents:update` and `tags:read`, and
+  `apiKeyWithoutTags` without the last two
+
+A key goes in the header `Authorization: Bearer <key>`. Papra keys always
+cover all of the user's organisations. `GET /api/api-keys/current` returns a
+key's permissions; a request the key lacks the permission for gets 401, the
+same as a wrong key.
+
 ### Vikunja
 
 SQLite. Registration is open. Seeded: user alice, an API token with every
@@ -159,14 +181,15 @@ For a webmail running on the host (for example `npm run dev`), put this in its
 `.env.local`:
 
 ```
-PLUGIN_PROXY_PRIVATE_ORIGINS=http://localhost:18025,http://localhost:18080,http://localhost:18010,http://localhost:18456,http://localhost:18021,http://localhost:18099,http://localhost:11434
+PLUGIN_PROXY_PRIVATE_ORIGINS=http://localhost:18025,http://localhost:18080,http://localhost:18010,http://localhost:18012,http://localhost:18456,http://localhost:18021,http://localhost:18099,http://localhost:11434
 ```
 
 The value is compared by origin, so use exactly the URLs you enter in the
 plugin settings: `http://127.0.0.1:18080` is not the same origin as
 `http://localhost:18080`. If the webmail runs in a container on the
 `bulwark-plugins-test_default` network, use the container names instead
-(`http://bpt-nextcloud`, `http://bpt-paperless:8000`, `http://bpt-vikunja:3456`,
+(`http://bpt-nextcloud`, `http://bpt-paperless:8000`, `http://bpt-papra:1221`,
+`http://bpt-vikunja:3456`,
 `http://bpt-donetick:2021`, `http://bpt-mocks:18099`, `http://bpt-ollama:11434`,
 `http://bpt-stalwart:8080`)
 both in the plugin settings and in `PLUGIN_PROXY_PRIVATE_ORIGINS`.
@@ -184,5 +207,5 @@ both in the plugin settings and in `PLUGIN_PROXY_PRIVATE_ORIGINS`.
 ## Ports
 
 18025 (Stalwart HTTP), 11587 (Stalwart SMTP submission), 18080 (Nextcloud),
-18010 (Paperless), 18456 (Vikunja), 18021 (Donetick), 18099 (mocks), 11434
+18010 (Paperless), 18012 (Papra), 18456 (Vikunja), 18021 (Donetick), 18099 (mocks), 11434
 (Ollama). They stay clear of 3000, 3100, 5432 and 8080.
