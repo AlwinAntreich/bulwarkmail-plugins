@@ -210,4 +210,40 @@ test.describe('papra plugin', () => {
       await disconnect(page).catch(() => {});
     }
   });
+  test('the settings page connects, sets the default organisation the dialogs preselect, and disconnects', async ({ page }) => {
+    const run = `Papra e2e settings ${Date.now()}`;
+    sendMail(run, `${run}.pdf`);
+    await preparePage(page);
+    await signIn(page);
+    await waitForPlugin(page, PLUGIN);
+    await disconnect(page);
+    try {
+      await page.getByRole('link', { name: 'Settings' }).first().click();
+      await page.getByRole('button', { name: 'Papra', exact: true }).first().click({ timeout: 60_000 });
+      const settings = page.frameLocator(SLOT).first();
+      await expect(settings.getByText('Not connected. Connect your Papra API key for localhost:18012.')).toBeVisible({ timeout: 60_000 });
+      await settings.getByRole('button', { name: 'Connect Papra' }).click();
+      const form = page.getByRole('dialog', { name: /Papra/ }).last();
+      await form.getByLabel('Password or key').fill(SECRETS.apiKey);
+      await form.getByRole('button', { name: 'Connect' }).click();
+      await expect(settings.getByText(/^Connected to localhost:18012 with the key/)).toBeVisible();
+      await settings.getByRole('combobox').selectOption(SECRETS.organizations.Team);
+
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await waitForPlugin(page, PLUGIN);
+      await openMessage(page, run);
+      await saveToPapra(page);
+      const dialog = page.frameLocator(SLOT).last();
+      await expect(dialog.getByRole('combobox')).toHaveValue(SECRETS.organizations.Team);
+      await footerButton(page, 'Cancel').click();
+
+      await page.getByRole('link', { name: 'Settings' }).first().click();
+      await page.getByRole('button', { name: 'Papra', exact: true }).first().click({ timeout: 60_000 });
+      await settings.getByRole('combobox').selectOption('');
+      await settings.getByRole('button', { name: 'Disconnect' }).click();
+      await expect(settings.getByRole('button', { name: 'Connect Papra' })).toBeVisible();
+    } finally {
+      await disconnect(page).catch(() => {});
+    }
+  });
 });
