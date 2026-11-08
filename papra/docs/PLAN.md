@@ -56,6 +56,13 @@ All services are reachable only over the owner's VPN, so Papra's address is priv
   - Its Content Security Policy only allows `https:` connections outside development, so the browser can't reach the test Stalwart over http and signing in fails. Checks through it run with Playwright's `bypassCSP`; they are scripts, not committed tests.
   - The repository's end-to-end tests need a webmail started with `npm run dev` from the webmail's source (development CSP), or Stalwart behind https. Installing the webmail's packages here (`npm ci` in a clone of `bulwarkmail/webmail`) was refused by this session's permission check; the owner decides. Don't leave a clone at `../jmap-webmail-plugins` that doesn't match the webmail version the repository expects: `slot-showcase`'s tests and `docs:check` compare against it when it's there, and fail against 1.21.0.
   - What the checks showed: the client works through the real proxy (key permissions, organisations, tags, search with `tag:`, download, upload of a file name with quotes, tagging, 409 for a duplicate, 401 for a missing permission and for a wrong key). And the host stores the user's key for any https origin and relays requests there, while refusing to use it on the admin's server (`wrong_origin`): the server check is needed, and it can't stop the relay.
+- **Decisions taken in step 5** (2026-11-08):
+  - The organisation the user saved to last is the default next time (`api.storage`), until the settings page (step 7) lets the user see and change it. One value for both keeps the user from setting a default they then override every time.
+  - Organisation and tags are picked with the kit's documented `Select` and `Checkbox`, not `Combobox`: `Combobox` isn't in the kit's documented list, and an organisation has few tags.
+  - The admin's default tags are shown ticked and fixed in the dialog; the user can't untick them.
+  - Only `attachment-menu`, no `reader-actions` "save the whole message": saving messages (`.eml`) is not in version 1.
+  - No "Open in Papra" link after saving: the address of a document in Papra's web app isn't checked yet. Can follow.
+  - The end-to-end tests delete what they saved with alice's Papra session (the seeded keys have no `documents:delete`).
 - **Decisions taken while scaffolding** (step 2, 2026-11-08):
   - Version `0.1.0` until the first release; `npm run release` sets the versions from then on. Author "Alwin Antreich".
   - Permissions are added by the step whose code uses them, each with its reason in the commit. The scaffold asks only for `http:proxy`. `admin:config` is not needed: `api.config.get()` reads the admin's settings without a permission.
@@ -147,13 +154,13 @@ Follow the repository's conventions exactly; when in doubt, copy what `paperless
 
 ## Work plan
 
-Status: steps 1 to 4 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`); how the plugin is built so far is in [architecture.md](architecture.md).
+Status: steps 1 to 5 are done (branches `papra/scaffold`, `papra/test-env`, `papra/client`, `papra/save`); how the plugin is built so far is in [architecture.md](architecture.md).
 
 1. Fork, clone, branch. Read `WRITING_PLUGINS.md`, `README.md` and the `paperless/` plugin end to end.
 2. Scaffold `papra/` from `plugin-template/`; add the manifest with the user-scope credential and minimal permissions.
 3. Add Papra to `test-env/` and confirm it starts and is reachable by the plugin proxy. Done, except the proxy: Papra starts, the seed runs twice cleanly, and the seeded keys list organisations, search (`tag:invoice`, words), list tags and download files; a key without the tag permissions gets 401 on tags. Reaching it through Bulwark's plugin proxy needs a webmail with `PLUGIN_PROXY_PRIVATE_ORIGINS`; that check comes with the first end-to-end test.
 4. Papra client module with unit tests: list organisations, search, upload, download. Done, with the connection check (server lock, key permissions) and its tests; checked through a test webmail's plugin proxy against the test Papra.
-5. "Save to Papra" on attachments, with tests.
+5. "Save to Papra" on attachments, with tests. Done: unit tests, a jsdom test of the dialog, and end-to-end tests that pass against the test webmail (run with `bypassCSP`, see "A webmail for testing").
 6. "Attach from Papra" in the composer, with tests.
 7. Settings section: connection state, default organisation.
 8. i18n (en, de), README (setup incl. `PLUGIN_PROXY_PRIVATE_ORIGINS` and Papra API key creation), CHANGELOG, media, built ZIP.

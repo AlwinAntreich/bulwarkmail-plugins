@@ -10,8 +10,8 @@ describes the implementation and changes with it.
 |---|---|
 | Manifest, build, setup notes | done (step 2) |
 | Papra in `test-env/` | done (step 3) |
-| Papra client, connection check | done (step 4); no UI uses them yet |
-| Save to Papra | planned (step 5) |
+| Papra client, connection check | done (step 4) |
+| Save to Papra | done (step 5) |
 | From Papra | planned (step 6) |
 | Settings section | planned (step 7) |
 
@@ -21,12 +21,18 @@ describes the implementation and changes with it.
 |---|---|
 | `manifest.json` | id, permissions, the admin's settings (`configSchema`) and the user credential |
 | `package.json`, `package-lock.json` | the build (esbuild into `dist/index.js`) and the test script; esbuild is the only package |
-| `src/index.js` | the entry point; `activate` does nothing yet |
+| `src/index.js` | the entry point: starts the background, routes `onAction`, renders the dialog slot |
+| `src/lib/background.js` | the attachment menu entry and the save flow |
+| `src/lib/save.js` | read an attachment, upload it, tag it |
+| `src/lib/tags.js` | the admin's default tags: parse the list, match it against an organisation's tags |
+| `src/ui/SaveDialog.jsx` | the "Save to Papra" dialog |
+| `src/ui/host.js` | the `api` for UI code (background or slot frame) |
 | `src/lib/client.js` | the Papra API client on top of `api.proxy.fetch` |
 | `src/lib/connection.js` | the admin's server, the user's key, the server check and the key's permissions |
 | `src/lib/errors.js` | Papra and proxy failures as message keys (`error.*`) |
 | `src/lib/multipart.js` | the upload body (copied from `paperless/`) |
-| `test/*.test.mjs` | unit tests for the three modules above |
+| `test/*.test.mjs` | unit tests; `save-dialog.test.mjs` renders the dialog in jsdom; `locales.test.mjs` checks every key the code uses has an English and German string |
+| `e2e/papra.spec.mjs`, `e2e/send_mail.py` | end-to-end tests against `test-env/` and a webmail |
 | `README.md` | setup for admins and users |
 | `CHANGELOG.md` | written by `npm run changelog` at release time |
 | `docs/` | the plan and this file |
@@ -110,15 +116,43 @@ checks the key with `GET /api/api-keys/current` (needs no permission):
   `wrong_origin`, `rate_limited`, `unreachable`, ...) have their own keys.
   The strings for these keys come with the first UI (step 5).
 
+## Save to Papra
+
+```
+attachment menu ── onAction (background.js)
+  │ resolveConnection; disconnected → ui.confirm → connect()   (connection.js)
+  │ checkKey → canTag; a lost required permission → error
+  ├─► ui.openDialog plugin-dialog view "save"                 (SaveDialog.jsx, slot frame)
+  │     organisations, the remembered one preselected; with canTag the
+  │     organisation's tags, the admin's default tags ticked and fixed,
+  │     missing ones named; onResult { organizationId, tagIds, missingDefaults }
+  ├─► saveAttachment                                          (save.js)
+  │     email.getAttachment (≤ 25 MB) → client.upload → client.tagDocument per tag
+  └─► toast: saved / already in Papra / default tags missing / tagging failed
+```
+
+- The organisation the user saved to last is kept in `api.storage`
+  (`organizationId`) and preselected next time. The settings page (step 7)
+  will show and change it.
+- Tags are added after the upload, one request each. A failed tag stops the
+  rest and leaves the document in Papra; the user is told why it has fewer
+  tags. With `canTag: false` no tag request is made at all.
+- The admin's `defaultTags` (comma-separated names) are matched against the
+  target organisation's tags case-insensitively (`tags.js`).
+- Strings: `locales` in `manifest.json`, English and German. Messages say
+  what failed and what to do (ask the admin, connect, give the key a
+  permission).
+
 ## Permissions
 
 | Permission | Since | Why |
 |---|---|---|
 | `http:proxy` | step 2 | requests to Papra through Bulwark's proxy with the user's key |
+| `email:read` | step 5 | the `attachment-menu` entry |
+| `email:blob-read` | step 5 | `api.email.getAttachment` |
+| `ui:observe` | step 5 | the `plugin-dialog` slot (always granted, not shown to users) |
 
-Each step adds the permissions its code uses. The ones the plan expects:
-`email:read` and `email:blob-read` (Save to Papra), `ui:composer-toolbar`
-and `email:blob-write` (From Papra), `ui:observe` (dialogs),
+Still expected: `ui:composer-toolbar` and `email:blob-write` (From Papra),
 `ui:settings-section` (settings).
 
 ## Build and tests
@@ -131,7 +165,10 @@ and `email:blob-write` (From Papra), `ui:observe` (dialogs),
   `test-env/README.md`); its API keys are in `test-env/.secrets/papra.json`.
 - Unit tests in `test/*.test.mjs` (Vitest, `fakeApi`) mock the proxy. The
   server check's tests fail when the origin comparison is removed (checked).
-  End-to-end tests go to `e2e/*.spec.mjs`; there are none yet.
+  End-to-end tests: `npm run test:e2e` (or `npx playwright test -c
+  e2e/playwright.config.mjs papra/`) with `BULWARK_ADMIN_PASSWORD`, a webmail
+  whose `PLUGIN_PROXY_PRIVATE_ORIGINS` lists `http://localhost:18012`,
+  plugins turned on in its admin policy, and `test-env/` seeded.
 - A webmail for testing runs in this setup as a container (see PLAN.md,
   "Test environment"); the client was checked through its real plugin
   proxy against the test Papra.
