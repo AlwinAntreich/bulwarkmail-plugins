@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.1.3 (2026-11-10)
+
+### Added
+- Save to Papra sets Papra properties: a Properties tab shows what will be set as "name: value", a click changes or removes one for this document, and Add property offers the organisation's other properties with a field for each type (text, number, date, yes/no, choice, multiple choice, Papra user, linked document). The API key needs custom-properties:read; without it the window has no properties.
+- Settings > Papra: default properties by name, such as Owner or Category, filled in wherever an organisation has that property. A property or option an organisation lacks is left out and named after saving; the plugin creates nothing in Papra.
+
+### Changed
+- Save to Papra has two tabs, Where and tags and Properties, with a line saying what Papra will get. Tags are pills: the admin's defaults fixed, the organisation's five most-used, and "+ n more" for the rest.
+- The default organisation and default properties are kept with the mail account, so they follow the user to other browsers and devices (Stalwart 1.0 and later; older servers keep them in the browser, and Settings says which). This needs the new permission email:write; the plugin changes no messages with it.
+
 ## 0.1.2 (2026-11-08)
 
 ### Changed

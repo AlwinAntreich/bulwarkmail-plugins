@@ -49,7 +49,7 @@ describe('documentOf', () => {
       documentDate: null, tags: [{ id: 'tag_1', name: 'Invoice', color: '#E11D48', normalizedName: 'invoice' }], content: 'long text',
     })).toEqual({
       id: 'doc_1', name: 'acme.pdf', mimeType: 'application/pdf', size: 646, createdAt: '2026-11-08T11:52:23.000Z',
-      documentDate: '', tags: [{ id: 'tag_1', name: 'Invoice', color: '#E11D48' }],
+      documentDate: '', tags: [{ id: 'tag_1', name: 'Invoice', color: '#E11D48' }], createdBy: '', customProperties: [],
     });
   });
 

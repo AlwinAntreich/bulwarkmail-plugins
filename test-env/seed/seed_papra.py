@@ -7,8 +7,9 @@ Idempotent: alice signs in when she already exists, organisations, tags and
 documents are looked up by name before anything is created, and API keys
 from test-env/.secrets/papra.json are kept while they still work.
 
-The organisation "Team" has no "Bulwark" tag, on purpose: the plugin skips a
-default tag the target organisation lacks, and tests need that case.
+The organisation "Team" has no "Bulwark" tag and only the property Owner, on
+purpose: the plugin skips a default tag or property the target organisation
+lacks, and tests need that case.
 """
 import os
 import sys
@@ -35,9 +36,24 @@ DOCUMENTS = [
     ('Team', 'meeting-notes.pdf', [], ['Team meeting', 'Agenda and notes']),
 ]
 
+# One property of each type Papra has; Team gets only Owner.
+PROPERTIES = {
+    'Alice': [
+        {'name': 'Owner', 'type': 'text'},
+        {'name': 'Category', 'type': 'select', 'options': [{'name': 'Private'}, {'name': 'Business'}]},
+        {'name': 'Amount', 'type': 'number'},
+        {'name': 'Due', 'type': 'date'},
+        {'name': 'Paid', 'type': 'boolean'},
+        {'name': 'Topics', 'type': 'multi_select', 'options': [{'name': 'Car'}, {'name': 'House'}]},
+        {'name': 'Responsible', 'type': 'user_relation'},
+        {'name': 'Related', 'type': 'document_relation'},
+    ],
+    'Team': [{'name': 'Owner', 'type': 'text'}],
+}
+
 KEYS = {
     # secrets key: permissions
-    'apiKey': ['organizations:read', 'documents:read', 'documents:create', 'documents:update', 'tags:read'],
+    'apiKey': ['organizations:read', 'documents:read', 'documents:create', 'documents:update', 'tags:read', 'custom-properties:read'],
     'apiKeyWithoutTags': ['organizations:read', 'documents:read', 'documents:create'],
 }
 
@@ -82,9 +98,10 @@ def multipart(filename, data):
     return body, f'multipart/form-data; boundary={boundary}'
 
 
-def key_works(token):
+def key_works(token, permissions):
+    """The key is still valid and has exactly these permissions (they change between seed versions)."""
     r = http('GET', f'{BASE}/api/api-keys/current', headers={'Authorization': f'Bearer {token}'})
-    return r.status == 200
+    return r.status == 200 and sorted(r.json()['apiKey']['permissions']) == sorted(permissions)
 
 
 def main():
@@ -105,6 +122,11 @@ def main():
                                              {'name': tag, 'color': color})['tag']['id']
                 print(f'papra: created tag {tag} in {name}')
         tag_ids[name] = existing
+        known = {d['name'] for d in session.call('GET', f'/api/organizations/{orgs[name]}/custom-properties')['propertyDefinitions']}
+        for definition in PROPERTIES[name]:
+            if definition['name'] not in known:
+                session.call('POST', f'/api/organizations/{orgs[name]}/custom-properties', definition)
+                print(f'papra: created property {definition["name"]} in {name}')
 
     for org, filename, tags, text in DOCUMENTS:
         org_id = orgs[org]
@@ -125,7 +147,7 @@ def main():
     keys = {}
     for name, permissions in KEYS.items():
         token = secret.get(name)
-        if not (token and key_works(token)):
+        if not (token and key_works(token, permissions)):
             label = f'bulwark-test {name} {time.strftime("%Y-%m-%d %H:%M:%S")}'
             token = session.call('POST', '/api/api-keys', {'name': label, 'permissions': permissions})['token']
             print(f'papra: created API key {name}')

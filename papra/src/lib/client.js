@@ -4,6 +4,7 @@
 
 import { PapraError, errorFromResponse } from './errors.js';
 import { buildMultipart } from './multipart.js';
+import { definitionsOf } from './properties.js';
 
 export const PAGE_SIZE = 25;
 /** Papra's largest page. */
@@ -52,6 +53,8 @@ export function documentOf(d) {
     createdAt: typeof d?.createdAt === 'string' ? d.createdAt : '',
     documentDate: typeof d?.documentDate === 'string' ? d.documentDate : '',
     tags: Array.isArray(d?.tags) ? d.tags.map(tagOf) : [],
+    createdBy: typeof d?.createdBy === 'string' ? d.createdBy : '',
+    customProperties: Array.isArray(d?.customProperties) ? d.customProperties : [],
   };
 }
 
@@ -158,6 +161,16 @@ export function createClient({ proxyFetch, credentialId, base }) {
       });
       if (!data?.document?.id) throw new PapraError('error.not_papra');
       return documentOf(data.document);
+    },
+
+    /** An organisation's property definitions, in Papra's order (properties.js). Needs custom-properties:read. */
+    async propertyDefinitions(organizationId) {
+      return definitionsOf((await json(`/api/organizations/${enc(organizationId)}/custom-properties`))?.propertyDefinitions);
+    },
+
+    /** Set one property of a document; `value` as properties.apiValue gives it. Needs documents:update and custom-properties:read. */
+    async setProperty(organizationId, documentId, definitionId, value) {
+      await sendJson('PUT', `/api/organizations/${enc(organizationId)}/documents/${enc(documentId)}/custom-properties/${enc(definitionId)}`, { value });
     },
 
     /** Add a tag to a document. Needs documents:update and tags:read. */

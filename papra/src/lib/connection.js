@@ -16,6 +16,8 @@ export const CREDENTIAL = 'papra';
 export const REQUIRED_PERMISSIONS = ['organizations:read', 'documents:read', 'documents:create'];
 /** What tagging needs on top; without it documents are saved untagged. */
 export const TAGGING_PERMISSIONS = ['tags:read', 'documents:update'];
+/** What setting properties needs on top; without it the dialog shows none. */
+export const PROPERTY_PERMISSIONS = ['custom-properties:read', 'documents:update'];
 
 /** Drop the user's key; a failure here changes nothing for the caller. */
 const disconnect = (api) => Promise.resolve().then(() => api.proxy.disconnect(CREDENTIAL)).catch(() => {});
@@ -72,6 +74,7 @@ export function keyAbilities(permissions = []) {
     missing: REQUIRED_PERMISSIONS.filter((p) => !has.has(p)),
     canTag: TAGGING_PERMISSIONS.every((p) => has.has(p)),
     canReadTags: has.has('tags:read'),
+    canSetProperties: PROPERTY_PERMISSIONS.every((p) => has.has(p)),
   };
 }
 
@@ -112,5 +115,5 @@ export async function connect(api) {
     await drop();
     return { connected: false, error: new PapraError('error.key_permissions', { missing: abilities.missing.join(', ') }) };
   }
-  return { connected: true, connection, canTag: abilities.canTag, canReadTags: abilities.canReadTags };
+  return { connected: true, connection, canTag: abilities.canTag, canReadTags: abilities.canReadTags, canSetProperties: abilities.canSetProperties };
 }

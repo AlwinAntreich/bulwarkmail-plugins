@@ -121,8 +121,8 @@ test.describe('papra plugin', () => {
       await expect(dialog.getByRole('combobox')).toHaveValue('');
       await expect(footerButton(page, 'Save')).toBeDisabled();
       await dialog.getByRole('combobox').selectOption(SECRETS.organizations.Alice);
-      await expect(dialog.getByRole('checkbox', { name: 'Bulwark' })).toBeChecked();
-      await dialog.getByRole('checkbox', { name: 'Invoice' }).click();
+      await expect(dialog.getByText('✓ Bulwark')).toBeVisible();
+      await dialog.getByRole('button', { name: /^Invoice/ }).click();
       await footerButton(page, 'Save').click();
       await expect(toast(page, `Saved ${pdfName} to Alice in Papra (tags: Bulwark, Invoice).`)).toBeVisible({ timeout: 60_000 });
 
@@ -248,6 +248,60 @@ test.describe('papra plugin', () => {
       await settings.getByRole('button', { name: 'Disconnect' }).click();
       await expect(settings.getByRole('button', { name: 'Connect Papra' })).toBeVisible();
     } finally {
+      await disconnect(page).catch(() => {});
+    }
+  });
+  test('saves with the user\'s default properties, one changed for this document', async ({ page }) => {
+    const run = `Papra e2e props ${Date.now()}`;
+    sendMail(run, `${run}.pdf`);
+    await preparePage(page);
+    await signIn(page);
+    await waitForPlugin(page, PLUGIN);
+    const settingsPage = async () => {
+      await page.getByRole('link', { name: 'Settings' }).first().click();
+      await page.getByRole('button', { name: 'Papra', exact: true }).first().click({ timeout: 60_000 });
+      return page.frameLocator(SLOT).first();
+    };
+    await disconnect(page);
+    try {
+      let settings = await settingsPage();
+      await settings.getByRole('button', { name: 'Connect Papra' }).click();
+      const form = page.getByRole('dialog', { name: /Papra/ }).last();
+      await form.getByLabel('Password or key').fill(SECRETS.apiKey);
+      await form.getByRole('button', { name: 'Connect' }).click();
+      // Defaults by name: Owner is the user, Category Private.
+      await settings.getByRole('button', { name: 'Add a default property' }).click();
+      await settings.getByRole('button', { name: 'Owner', exact: true }).click();
+      await settings.getByLabel('Default for Owner').fill('Alwin Antreich');
+      await settings.getByRole('button', { name: 'Add a default property' }).click();
+      await settings.getByRole('button', { name: 'Category', exact: true }).click();
+      await settings.getByLabel('Default for Category').selectOption('Private');
+
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await waitForPlugin(page, PLUGIN);
+      await openMessage(page, run);
+      await saveToPapra(page);
+      const dialog = page.frameLocator(SLOT).last();
+      await dialog.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
+      await dialog.getByRole('tab', { name: /^Properties/ }).click();
+      await expect(dialog.getByRole('button', { name: 'Category: Private' })).toBeVisible();
+      // The document belongs to someone else: change the owner for this save.
+      await dialog.getByRole('button', { name: 'Owner: Alwin Antreich' }).click();
+      await dialog.getByLabel('Owner', { exact: true }).fill('Agata');
+      await dialog.getByRole('button', { name: 'Done' }).click();
+      await dialog.getByRole('button', { name: 'Add property' }).click();
+      await dialog.getByRole('button', { name: 'Paid', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Done' }).click();
+      await footerButton(page, 'Save').click();
+      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
+
+      const [doc] = await findDocs('Alice', run);
+      const values = Object.fromEntries(doc.customProperties.filter((p) => p.value !== null && p.value !== undefined).map((p) => [p.name, p.value?.name ?? p.value]));
+      expect(values).toMatchObject({ Owner: 'Agata', Category: 'Private', Paid: true });
+    } finally {
+      for (const doc of await findDocs('Alice', run).catch(() => [])) await deleteDoc('Alice', doc.id).catch(() => {});
+      const settings = await settingsPage().catch(() => null);
+      for (const name of ['Owner', 'Category']) await settings?.getByRole('button', { name: `Remove ${name}` }).click({ timeout: 5_000 }).catch(() => {});
       await disconnect(page).catch(() => {});
     }
   });
