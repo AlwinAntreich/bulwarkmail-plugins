@@ -4,7 +4,7 @@ Connects Bulwark to [Papra](https://papra.app), a document archive with
 OCR and full-text search:
 
 - **Save to Papra:** save an attachment as a document in one of your Papra
-  organisations, with tags.
+  organisations, with tags and properties.
 - **From Papra:** search Papra from the composer with its full search language and attach
   documents to the message.
 
@@ -85,10 +85,12 @@ Create an API key in Papra with these permissions:
 | `documents:read` | searching and attaching documents |
 | `documents:create` | saving attachments |
 | `tags:read`, `documents:update` | tagging saved documents (optional) |
+| `custom-properties:read`, `documents:update` | setting properties of saved documents (optional) |
 
-Without the last two, documents are saved without tags. `documents:update`
-also lets the key change the name, date and notes of documents, which you
-can do in Papra yourself anyway. A Papra key always covers all your
+Without the tag permissions, documents are saved without tags; without
+`custom-properties:read`, without properties. `documents:update` also lets
+the key change the name, date and notes of documents, which you can do in
+Papra yourself anyway. A Papra key always covers all your
 organisations, private and shared.
 
 Connect the key in Settings > Papra, or when the plugin first asks for it;
@@ -100,12 +102,26 @@ server; the plugin never sees it.
 
 In Settings > Papra you can choose a default organisation; the dialogs
 preselect it. Without one, you pick the organisation each time, so nothing
-lands in a shared organisation by accident. The same page shows what your
-key may do and disconnects it.
+lands in a shared organisation by accident. **Default properties** there
+fill in properties when you save, by name, in every organisation that has
+a property of that name: for example Owner = your name, Category =
+Private. The same page shows what your key may do and disconnects it. The
+default organisation and default properties are kept in this browser
+only; set them again in another browser or on another device.
 
-Open an attachment's menu in a message and choose **Save to Papra**. Pick
-the organisation and any tags; the admin's default tags are already
-ticked. Bulwark reads attachments up to
+Open an attachment's menu in a message and choose **Save to Papra**. On
+**Where and tags**, pick the organisation and the tags: the admin's
+default tags are already on, the organisation's five most-used tags are
+pills to switch on, and "+ n more" shows the rest. On **Properties**, the
+properties that will be set show as "name: value", your defaults filled
+in: click one to change it for this document (the birth certificate you
+upload is Agata's, so she is the owner) or remove it, and **Add property**
+offers the organisation's other properties, each with a field for its type.
+A line under both tabs says what Papra will get. The plugin creates no
+tags, properties or options: a default the organisation doesn't have is
+left out, and the message after saving says so. For a Papra user property,
+Papra shows the plugin only you (after your first save from Bulwark) and
+the people already set on documents. Bulwark reads attachments up to
 25 MB. If Papra already has the file, you are told so.
 
 Writing a message, open **Attach** and choose **From Papra**. The search

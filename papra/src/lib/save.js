@@ -1,5 +1,6 @@
 // Saving one attachment to Papra: read it from the mail server, upload it to
-// the chosen organisation, then add the tags (Papra's upload takes none).
+// the chosen organisation, then add the tags and set the properties (Papra's
+// upload takes neither).
 
 import { PapraError, toPapraError } from './errors.js';
 
@@ -20,11 +21,13 @@ export function attachmentOf(context) {
 }
 
 /**
- * Read, upload and tag. Tagging failures don't undo the upload: the document
- * is in Papra, and `tagError` says why it has fewer tags.
- * @returns {Promise<{ document: object, tagged: string[], tagError: PapraError|null }>}
+ * Read, upload, tag and set properties. Failures after the upload don't undo
+ * it: the document is in Papra, `tagError` says why it has fewer tags, and
+ * `propertyErrors` names the properties that couldn't be set and why.
+ * @param {Array<{ id: string, name: string, value: unknown }>} [properties] values as properties.apiValue gives them
+ * @returns {Promise<{ document: object, tagged: string[], tagError: PapraError|null, propertiesSet: string[], propertyErrors: Array<{ name: string, error: PapraError }> }>}
  */
-export async function saveAttachment({ api, client, attachment, organizationId, tagIds = [] }) {
+export async function saveAttachment({ api, client, attachment, organizationId, tagIds = [], properties = [] }) {
   if (attachment.size > MAX_ATTACHMENT_BYTES) throw new PapraError('error.mail_too_large');
   let file;
   try {
@@ -49,5 +52,16 @@ export async function saveAttachment({ api, client, attachment, organizationId, 
       break;
     }
   }
-  return { document, tagged, tagError };
+  const propertiesSet = [];
+  const propertyErrors = [];
+  for (const { id, name, value } of properties) {
+    try {
+      await client.setProperty(organizationId, document.id, id, value);
+      propertiesSet.push(name);
+    } catch (err) {
+      // Each property can fail on its own (a value Papra refuses); try the rest.
+      propertyErrors.push({ name, error: toPapraError(err) });
+    }
+  }
+  return { document, tagged, tagError, propertiesSet, propertyErrors };
 }

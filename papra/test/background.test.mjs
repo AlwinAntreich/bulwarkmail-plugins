@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { createBackground, ACTION_SAVE, ACTION_ATTACH, DEFAULT_ORGANIZATION_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
+import { createBackground, ACTION_SAVE, ACTION_ATTACH, DEFAULT_ORGANIZATION_KEY, DEFAULT_PROPERTIES_KEY, PAPRA_USER_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const SERVER = 'https://papra.example.com';
@@ -16,6 +16,7 @@ function setup({
   config = { serverUrl: SERVER, defaultTags: 'Bulwark, Email' }, connected = true, permissions = FULL,
   dialog = () => choice, confirm = () => true, upload = () => proxyResponse('{"document":{"id":"doc_1","name":"invoice.pdf"}}'),
   tag = () => ({ status: 204, ok: true, headers: {}, body: '' }), attachResult = true,
+  property = () => ({ status: 204, ok: true, headers: {}, body: '' }),
 } = {}) {
   let accounts = connected ? [{ credentialId: 'papra', origin: SERVER, connected: true }] : [];
   return fakeApi({
@@ -30,6 +31,7 @@ function setup({
         if (path === '/api/api-keys/current') return proxyResponse(JSON.stringify({ apiKey: { id: 'ak', name: 'k', permissions } }));
         if (path === '/api/organizations/org_a/documents' && init.method === 'POST') return upload();
         if (path.endsWith('/tags') && init.method === 'POST') return tag();
+        if (/\/custom-properties\/[^/]+$/.test(path) && init.method === 'PUT') return property(path);
         if (/\/documents\/[^/]+\/file$/.test(path)) return { status: 200, ok: true, headers: {}, body: new Uint8Array(5).buffer };
         return { status: 404, ok: false, headers: {}, body: '' };
       },
@@ -94,6 +96,43 @@ describe('saving an attachment', () => {
     await Promise.resolve();
     expect(failing.calls('toast.dismiss')).toHaveLength(1);
     expect(toasts(failing, 'error')).toEqual(['Papra had an internal error.']);
+  });
+
+  it('passes the property defaults to the dialog and sets the chosen properties', async () => {
+    const props = [{ id: 'p1', name: 'Owner', value: 'Agata', text: 'Agata' }, { id: 'p2', name: 'Category', value: 'o1', text: 'Private' }];
+    const api = setup({
+      permissions: [...FULL, 'custom-properties:read'],
+      upload: () => proxyResponse('{"document":{"id":"doc_1","name":"invoice.pdf","createdBy":"usr_me"}}'),
+      dialog: () => ({ ...choice, properties: props, missingProperties: ['Project'] }),
+    });
+    await api.storage.set(DEFAULT_PROPERTIES_KEY, [{ name: 'Owner', value: 'Alwin Antreich' }]);
+    await createBackground(api).onAction(click);
+    expect(api.calls('ui.openDialog')[0].args[0].extraProps).toMatchObject({ canSetProperties: true, defaultProperties: [{ name: 'Owner', value: 'Alwin Antreich' }], me: null });
+    expect(fetched(api).filter((r) => r.includes('custom-properties'))).toEqual([
+      'PUT /api/organizations/org_a/documents/doc_1/custom-properties/p1',
+      'PUT /api/organizations/org_a/documents/doc_1/custom-properties/p2',
+    ]);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra (tags: Bulwark, Invoice; Owner: Agata; Category: Private). Default properties left out, Alice doesn’t have them: Project']);
+    // The upload's creator is the user's own Papra account, for "me".
+    expect(await api.storage.get(PAPRA_USER_KEY)).toEqual({ id: 'usr_me' });
+  });
+
+  it('says which properties Papra refused', async () => {
+    const api = setup({
+      permissions: [...FULL, 'custom-properties:read'],
+      dialog: () => ({ ...choice, properties: [{ id: 'p3', name: 'Amount', value: 1, text: '1' }] }),
+      property: () => ({ status: 400, ok: false, headers: {}, body: '{"error":{"message":"The provided value is invalid for this property type.","code":"custom_property_value.invalid"}}' }),
+    });
+    await createBackground(api).onAction(click);
+    expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra (tags: Bulwark, Invoice). Couldn’t set Amount: Papra rejected the request: The provided value is invalid for this property type.']);
+  });
+
+  it('sets no properties without the property permission, and offers none', async () => {
+    const api = setup({ dialog: () => ({ ...choice, properties: [{ id: 'p1', name: 'Owner', value: 'x', text: 'x' }] }) });
+    await api.storage.set(DEFAULT_PROPERTIES_KEY, [{ name: 'Owner', value: 'Alwin Antreich' }]);
+    await createBackground(api).onAction(click);
+    expect(api.calls('ui.openDialog')[0].args[0].extraProps).toMatchObject({ canSetProperties: false, defaultProperties: [] });
+    expect(fetched(api).filter((r) => r.includes('custom-properties'))).toEqual([]);
   });
 
   it('tags nothing with a key that can\'t tag', async () => {

@@ -70,14 +70,16 @@ describe('clientFor', () => {
 
 describe('keyAbilities', () => {
   it('lists the required permissions a key lacks and whether it may tag', () => {
-    expect(keyAbilities(FULL)).toEqual({ missing: [], canTag: true, canReadTags: true });
-    expect(keyAbilities(['organizations:read', 'documents:read', 'documents:create'])).toEqual({ missing: [], canTag: false, canReadTags: false });
-    expect(keyAbilities(['documents:read', 'tags:read'])).toEqual({ missing: ['organizations:read', 'documents:create'], canTag: false, canReadTags: true });
+    expect(keyAbilities(FULL)).toEqual({ missing: [], canTag: true, canReadTags: true, canSetProperties: false });
+    expect(keyAbilities([...FULL, 'custom-properties:read'])).toMatchObject({ canSetProperties: true });
+    expect(keyAbilities(['organizations:read', 'documents:read', 'documents:create', 'custom-properties:read'])).toMatchObject({ canTag: false, canSetProperties: false });
+    expect(keyAbilities(['organizations:read', 'documents:read', 'documents:create'])).toEqual({ missing: [], canTag: false, canReadTags: false, canSetProperties: false });
+    expect(keyAbilities(['documents:read', 'tags:read'])).toEqual({ missing: ['organizations:read', 'documents:create'], canTag: false, canReadTags: true, canSetProperties: false });
   });
 
   it('checks the connected key through /api/api-keys/current', async () => {
     const api = setup({ fetch: () => keyAnswer(['organizations:read', 'documents:read', 'documents:create']) });
-    expect(await checkKey(api, { state: 'connected', server: SERVER })).toEqual({ missing: [], canTag: false, canReadTags: false });
+    expect(await checkKey(api, { state: 'connected', server: SERVER })).toEqual({ missing: [], canTag: false, canReadTags: false, canSetProperties: false });
     expect(api.calls('proxy.fetch')[0].args[1]).toBe(`${SERVER}/api/api-keys/current`);
   });
 });

@@ -6,10 +6,11 @@ import { PapraError } from '../src/lib/errors.js';
 const pdf = { name: 'invoice.pdf', type: 'application/pdf', size: 8, data: new TextEncoder().encode('%PDF-1.4').buffer };
 const attachment = { emailId: 'm1', blobId: 'b1', name: 'invoice.pdf', type: 'application/pdf', size: 8 };
 
-function fakeClient({ upload, tag } = {}) {
+function fakeClient({ upload, tag, property } = {}) {
   const calls = [];
   return {
     calls,
+    setProperty: async (org, doc, id, value) => { calls.push(['property', org, doc, id, value]); if (property) property(id); },
     upload: async (org, file) => { calls.push(['upload', org, file.name, file.type]); return upload ? upload() : { id: 'doc_1', name: file.name }; },
     tagDocument: async (org, doc, tagId) => { calls.push(['tag', org, doc, tagId]); if (tag) tag(tagId); },
   };
@@ -30,9 +31,24 @@ describe('saveAttachment', () => {
     const api = fakeApi({ handlers: { 'email.getAttachment': () => pdf } });
     const client = fakeClient();
     const result = await saveAttachment({ api, client, attachment, organizationId: 'org_a', tagIds: ['t1', 't2'] });
-    expect(result).toEqual({ document: { id: 'doc_1', name: 'invoice.pdf' }, tagged: ['t1', 't2'], tagError: null });
+    expect(result).toEqual({ document: { id: 'doc_1', name: 'invoice.pdf' }, tagged: ['t1', 't2'], tagError: null, propertiesSet: [], propertyErrors: [] });
     expect(api.calls('email.getAttachment')[0].args).toEqual(['m1', 'b1']);
     expect(client.calls).toEqual([['upload', 'org_a', 'invoice.pdf', 'application/pdf'], ['tag', 'org_a', 'doc_1', 't1'], ['tag', 'org_a', 'doc_1', 't2']]);
+  });
+
+  it('sets each property after the tags, and tries the rest when Papra refuses one', async () => {
+    const api = fakeApi({ handlers: { 'email.getAttachment': () => pdf } });
+    const client = fakeClient({ property: (id) => { if (id === 'p2') throw new PapraError('error.rejected', { detail: 'invalid' }, 400); } });
+    const properties = [{ id: 'p1', name: 'Owner', value: 'Agata' }, { id: 'p2', name: 'Amount', value: 1 }, { id: 'p3', name: 'Paid', value: false }];
+    const result = await saveAttachment({ api, client, attachment, organizationId: 'org_a', tagIds: ['t1'], properties });
+    expect(client.calls.filter((c) => c[0] !== 'upload')).toEqual([
+      ['tag', 'org_a', 'doc_1', 't1'],
+      ['property', 'org_a', 'doc_1', 'p1', 'Agata'],
+      ['property', 'org_a', 'doc_1', 'p2', 1],
+      ['property', 'org_a', 'doc_1', 'p3', false],
+    ]);
+    expect(result.propertiesSet).toEqual(['Owner', 'Paid']);
+    expect(result.propertyErrors.map((e) => [e.name, e.error.key])).toEqual([['Amount', 'error.rejected']]);
   });
 
   it('keeps the upload when tagging fails, and stops tagging', async () => {

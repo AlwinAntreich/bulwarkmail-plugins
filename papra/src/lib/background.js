@@ -16,6 +16,14 @@ export const ACTION_ATTACH = 'from-papra';
  * save to a shared organisation doesn't make the next one go there too.
  */
 export const DEFAULT_ORGANIZATION_KEY = 'defaultOrganizationId';
+/** The user's default properties from Settings: [{ name, value }], by property name (properties.js). */
+export const DEFAULT_PROPERTIES_KEY = 'defaultProperties';
+/**
+ * The user's own Papra account { id }, learned from the creator of their
+ * first upload: Papra doesn't tell an API key whose it is. For "me" in a
+ * Papra user property.
+ */
+export const PAPRA_USER_KEY = 'papraUser';
 /**
  * Below this a save is quick, and a spinner toast would only use up the
  * host's toast budget (5 per plugin in 10 seconds; past that they are
@@ -47,11 +55,11 @@ export function createBackground(api) {
         if (result.error) throw result.error;
         return null;
       }
-      return { connection: result.connection, canTag: result.canTag, canReadTags: result.canReadTags };
+      return { connection: result.connection, canTag: result.canTag, canReadTags: result.canReadTags, canSetProperties: result.canSetProperties };
     }
-    const { missing, canTag, canReadTags } = await checkKey(api, connection);
+    const { missing, canTag, canReadTags, canSetProperties } = await checkKey(api, connection);
     if (missing.length) throw new PapraError('error.key_permissions', { missing: missing.join(', ') });
-    return { connection, canTag, canReadTags };
+    return { connection, canTag, canReadTags, canSetProperties };
   }
 
   /** A toast with a spinner while a save runs (large attachments take a while); null when the host has none to give. */
@@ -74,8 +82,9 @@ export function createBackground(api) {
     try {
       const ready = await ensureConnection();
       if (!ready) return null;
-      const { connection, canTag } = ready;
+      const { connection, canTag, canSetProperties } = ready;
       const config = await Promise.resolve(api.config.get()).catch(() => ({}));
+      const stored = (key) => api.storage.get(key).catch(() => null);
       const choice = await api.ui.openDialog({
         title: t('dialog.title'),
         slot: 'plugin-dialog',
@@ -86,7 +95,10 @@ export function createBackground(api) {
           connection,
           canTag,
           defaultTags: parseTagList(config?.defaultTags),
-          organizationId: await api.storage.get(DEFAULT_ORGANIZATION_KEY).catch(() => null),
+          organizationId: await stored(DEFAULT_ORGANIZATION_KEY),
+          canSetProperties,
+          defaultProperties: canSetProperties ? (await stored(DEFAULT_PROPERTIES_KEY)) || [] : [],
+          me: await stored(PAPRA_USER_KEY),
         },
       });
       if (!choice?.organizationId) return null;
@@ -95,10 +107,12 @@ export function createBackground(api) {
       try {
         result = await saveAttachment({
           api, client: clientFor(api, connection), attachment, organizationId: choice.organizationId, tagIds: canTag ? choice.tagIds || [] : [],
+          properties: canSetProperties && Array.isArray(choice.properties) ? choice.properties : [],
         });
       } finally {
         hideProgress(progress);
       }
+      if (result.document?.createdBy) await api.storage.set(PAPRA_USER_KEY, { id: result.document.createdBy }).catch(() => {});
       report(attachment, choice, result);
       return result;
     } catch (err) {
@@ -114,13 +128,19 @@ export function createBackground(api) {
    * budget. It names the tags the document got, so a skipped default tag
    * doesn't read as "saved without tags".
    */
-  function report(attachment, choice, { tagged = [], tagError }) {
+  function report(attachment, choice, { tagged = [], tagError, propertiesSet = [], propertyErrors = [] }) {
     const ids = choice.tagIds || [];
     const names = tagged.map((id) => choice.tagNames?.[ids.indexOf(id)]).filter(Boolean);
-    const vars = { name: attachment.name, organization: choice.organizationName || '', tagged: names.join(', ') };
-    const saved = names.length ? t('done.saved_tagged', vars) : t('done.saved', vars);
-    if (tagError) api.toast.warning(`${saved} ${t('done.tag_failed', { error: errorText(t, tagError) })}`);
-    else if (choice.missingDefaults?.length) api.toast.warning(`${saved} ${t('done.missing_defaults', { ...vars, tags: choice.missingDefaults.join(', ') })}`);
+    const shown = (choice.properties || []).filter((p) => propertiesSet.includes(p.name)).map((p) => `${p.name}: ${p.text}`);
+    const details = [names.length ? t('done.tags', { tags: names.join(', ') }) : '', ...shown].filter(Boolean).join('; ');
+    const vars = { name: attachment.name, organization: choice.organizationName || '', details };
+    const notes = [];
+    if (tagError) notes.push(t('done.tag_failed', { error: errorText(t, tagError) }));
+    else if (choice.missingDefaults?.length) notes.push(t('done.missing_defaults', { ...vars, tags: choice.missingDefaults.join(', ') }));
+    if (choice.missingProperties?.length) notes.push(t('done.missing_properties', { ...vars, properties: choice.missingProperties.join(', ') }));
+    if (propertyErrors.length) notes.push(t('done.property_failed', { properties: propertyErrors.map((p) => p.name).join(', '), error: errorText(t, propertyErrors[0].error) }));
+    const saved = details ? t('done.saved_details', vars) : t('done.saved', vars);
+    if (notes.length) api.toast.warning(`${saved} ${notes.join(' ')}`);
     else api.toast.success(saved);
   }
 

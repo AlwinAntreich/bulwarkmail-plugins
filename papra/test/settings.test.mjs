@@ -7,7 +7,8 @@ import * as React from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
 import { Settings } from '../src/ui/Settings.jsx';
-import { DEFAULT_ORGANIZATION_KEY } from '../src/lib/background.js';
+import { DEFAULT_ORGANIZATION_KEY, DEFAULT_PROPERTIES_KEY } from '../src/lib/background.js';
+import { mergeDefinitions } from '../src/ui/DefaultProperties.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(cleanup);
@@ -29,6 +30,14 @@ function makeApi({ serverUrl = SERVER, accounts = [{ credentialId: 'papra', orig
         const p = new URL(url).pathname;
         if (p === '/api/api-keys/current') return proxyResponse(JSON.stringify({ apiKey: { id: 'ak', name: 'bulwark laptop', permissions } }));
         if (p === '/api/organizations') return proxyResponse(JSON.stringify({ organizations: [{ id: 'org_t', name: 'Team' }, { id: 'org_a', name: 'Alice' }] }));
+        if (p === '/api/organizations/org_a/custom-properties') return proxyResponse(JSON.stringify({ propertyDefinitions: [
+          { id: 'p1', name: 'Owner', type: 'text', options: [] },
+          { id: 'p2', name: 'Category', type: 'select', options: [{ id: 'o1', name: 'Private' }] },
+          { id: 'p3', name: 'Related', type: 'document_relation', options: [] },
+        ] }));
+        if (p === '/api/organizations/org_t/custom-properties') return proxyResponse(JSON.stringify({ propertyDefinitions: [
+          { id: 'q2', name: 'category', type: 'select', options: [{ id: 'x1', name: 'Business' }] },
+        ] }));
         return { status: 404, ok: false, headers: {}, body: '' };
       },
     },
@@ -53,6 +62,31 @@ describe('Settings', () => {
     expect(await api.storage.get(DEFAULT_ORGANIZATION_KEY)).toBe('org_t');
     await act(async () => { fireEvent.change(select, { target: { value: '' } }); });
     expect(await api.storage.get(DEFAULT_ORGANIZATION_KEY)).toBeNull();
+  });
+
+  it('keeps default properties by name, for the properties the organisations define', async () => {
+    const api = makeApi({ permissions: [...FULL, 'custom-properties:read'] });
+    await show(api);
+    await screen.findByText('No default properties yet.');
+    await press(screen.getByRole('button', { name: 'Add a default property' }));
+    // Merged by name from both organisations; a linked document can't be a default.
+    expect(screen.getByRole('group', { name: 'Add a default property' }).textContent).toBe('CategorychoiceOwnertext');
+    await press(screen.getByRole('button', { name: 'Owner' }));
+    await act(async () => { fireEvent.change(screen.getByLabelText('Default for Owner'), { target: { value: 'Alwin Antreich' } }); });
+    await press(screen.getByRole('button', { name: 'Add a default property' }));
+    await press(screen.getByRole('button', { name: 'Category' }));
+    const category = screen.getByLabelText('Default for Category');
+    expect([...category.options].map((o) => o.textContent)).toEqual(['Not set', 'Private', 'Business']);
+    await act(async () => { fireEvent.change(category, { target: { value: 'Private' } }); });
+    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Category', value: 'Private' }]);
+    await press(screen.getByRole('button', { name: 'Remove Owner' }));
+    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Category', value: 'Private' }]);
+  });
+
+  it('says when the key can\'t set properties, and offers no defaults', async () => {
+    await show(makeApi());
+    await screen.findByText(/This key can't set properties/);
+    expect(screen.queryByText('Default properties')).toBeNull();
   });
 
   it('says when the key can\'t tag', async () => {
@@ -103,3 +137,15 @@ function fakeApiUnreachable() {
     },
   });
 }
+
+describe('mergeDefinitions', () => {
+  it('merges properties and their options by name, without linked documents', () => {
+    expect(mergeDefinitions([
+      [{ name: 'Owner', type: 'text', options: [] }, { name: 'Category', type: 'select', options: [{ name: 'Private' }] }],
+      [{ name: 'category', type: 'select', options: [{ name: 'private' }, { name: 'Business' }] }, { name: 'Related', type: 'document_relation', options: [] }],
+    ])).toEqual([
+      { name: 'Category', type: 'select', options: ['Private', 'Business'] },
+      { name: 'Owner', type: 'text', options: [] },
+    ]);
+  });
+});

@@ -4,6 +4,7 @@ import { getApi } from './host.js';
 import { CREDENTIAL, clientFor, connect, keyAbilities, resolveConnection } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
 import { DEFAULT_ORGANIZATION_KEY } from '../lib/background.js';
+import { DefaultProperties } from './DefaultProperties.jsx';
 
 const hostOf = (url) => {
   try { return new URL(url).host; } catch { return String(url || ''); }
@@ -106,6 +107,7 @@ export function Settings({ api = getApi() }) {
               {!key && error && <Text>{t('settings.check_failed', { host })}</Text>}
               {key && key.missing.length > 0 && <Alert tone="warning" icon="alert-triangle">{t('settings.missing', { missing: key.missing.join(', ') })}</Alert>}
               {key && key.missing.length === 0 && !key.canTag && <Text tone="muted">{t('settings.cannot_tag')}</Text>}
+              {key && key.missing.length === 0 && !key.canSetProperties && <Text tone="muted">{t('settings.cannot_set_properties')}</Text>}
               <div><Button variant="secondary" busy={busy} onClick={onDisconnect}>{t('settings.disconnect')}</Button></div>
             </>
           )}
@@ -118,6 +120,11 @@ export function Settings({ api = getApi() }) {
             <Select block value={shownDefault} onChange={onDefault}
               options={[{ value: '', label: t('settings.no_default') }, ...organizations.map((o) => ({ value: o.id, label: o.name }))]} />
           </Field>
+        </Section>
+      )}
+      {connection.state === 'connected' && key?.canSetProperties && organizations && organizations.length > 0 && (
+        <Section title={t('settings.default_properties')} description={t('settings.default_properties_hint')}>
+          <DefaultProperties api={api} client={clientFor(api, connection)} organizations={organizations} t={t} />
         </Section>
       )}
     </Stack>
