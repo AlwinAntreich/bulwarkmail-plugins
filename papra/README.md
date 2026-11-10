@@ -106,8 +106,10 @@ lands in a shared organisation by accident. **Default properties** there
 fill in properties when you save, by name, in every organisation that has
 a property of that name: for example Owner = your name, Category =
 Private. The same page shows what your key may do and disconnects it. The
-default organisation and default properties are kept in this browser
-only; set them again in another browser or on another device.
+default organisation and default properties are kept with your mail
+account, so every browser and device you sign in with uses them; this
+needs Stalwart 1.0 or later, and on an older mail server they stay in the
+browser you set them in. The page says which applies.
 
 Open an attachment's menu in a message and choose **Save to Papra**. On
 **Where and tags**, pick the organisation and the tags: the admin's
@@ -150,3 +152,4 @@ way.
 | `email:blob-write` | add the documents you pick to the message |
 | `ui:observe` | the dialogs where you choose the organisation, tags and documents |
 | `ui:settings-section` | the Papra page in Settings: connection and default organisation |
+| `email:write` | keep your default organisation and default properties with your mail account (a small value in your Inbox's settings), so they follow you to other devices; the plugin changes no messages |

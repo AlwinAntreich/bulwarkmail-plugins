@@ -4,10 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as React from 'react';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
 import { Settings } from '../src/ui/Settings.jsx';
-import { DEFAULT_ORGANIZATION_KEY, DEFAULT_PROPERTIES_KEY } from '../src/lib/background.js';
+// The browser copy of the preferences (prefs.js); the fake api's server keeps no account data.
+const DEFAULT_ORGANIZATION_KEY = 'defaultOrganizationId';
+const DEFAULT_PROPERTIES_KEY = 'defaultProperties';
 import { mergeDefinitions } from '../src/ui/DefaultProperties.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -78,7 +80,8 @@ describe('Settings', () => {
     const category = screen.getByLabelText('Default for Category');
     expect([...category.options].map((o) => o.textContent)).toEqual(['Not set', 'Private', 'Business']);
     await act(async () => { fireEvent.change(category, { target: { value: 'Private' } }); });
-    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Category', value: 'Private' }]);
+    // Saved a moment after the last change, not per keystroke.
+    await waitFor(async () => expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Category', value: 'Private' }]), { timeout: 2000 });
     await press(screen.getByRole('button', { name: 'Remove Owner' }));
     expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Category', value: 'Private' }]);
   });

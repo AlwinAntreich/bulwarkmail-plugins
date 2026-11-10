@@ -3,7 +3,7 @@ import { Alert, Button, Field, Loading, Section, Select, Stack, Text } from '@pl
 import { getApi } from './host.js';
 import { CREDENTIAL, clientFor, connect, keyAbilities, resolveConnection } from '../lib/connection.js';
 import { errorText } from '../lib/errors.js';
-import { DEFAULT_ORGANIZATION_KEY } from '../lib/background.js';
+import { readPrefs, updatePrefs } from '../lib/prefs.js';
 import { DefaultProperties } from './DefaultProperties.jsx';
 
 const hostOf = (url) => {
@@ -23,6 +23,7 @@ export function Settings({ api = getApi() }) {
   const [defaultId, setDefaultId] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -30,7 +31,9 @@ export function Settings({ api = getApi() }) {
     setOrganizations(null);
     const next = await resolveConnection(api);
     setConnection(next);
-    setDefaultId((await api.storage.get(DEFAULT_ORGANIZATION_KEY).catch(() => null)) || '');
+    const { prefs, synced: inAccount } = await readPrefs(api);
+    setDefaultId(prefs.defaultOrganizationId || '');
+    setSynced(inAccount);
     if (next.state !== 'connected') return;
     try {
       const client = clientFor(api, next);
@@ -73,9 +76,8 @@ export function Settings({ api = getApi() }) {
   const onDefault = async (value) => {
     setError(null);
     try {
-      if (value) await api.storage.set(DEFAULT_ORGANIZATION_KEY, value);
-      else await api.storage.remove(DEFAULT_ORGANIZATION_KEY);
       setDefaultId(value || '');
+      setSynced((await updatePrefs(api, { defaultOrganizationId: value || null })).synced);
     } catch (err) {
       setError(err);
     }
@@ -121,6 +123,9 @@ export function Settings({ api = getApi() }) {
               options={[{ value: '', label: t('settings.no_default') }, ...organizations.map((o) => ({ value: o.id, label: o.name }))]} />
           </Field>
         </Section>
+      )}
+      {connection.state === 'connected' && organizations && organizations.length > 0 && (
+        <Text tone="muted">{synced ? t('settings.prefs_synced') : t('settings.prefs_local')}</Text>
       )}
       {connection.state === 'connected' && key?.canSetProperties && organizations && organizations.length > 0 && (
         <Section title={t('settings.default_properties')} description={t('settings.default_properties_hint')}>

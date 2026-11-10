@@ -8,6 +8,7 @@
   "permissions": [
     "http:proxy",
     "email:read",
+    "email:write",
     "email:blob-read",
     "email:blob-write",
     "ui:composer-toolbar",
@@ -185,7 +186,10 @@
       "settings.property_gone": "None of your organisations has {name} any more; it is left out.",
       "settings.remove_default": "Remove {name}",
       "settings.add_default": "Add a default property",
-      "settings.no_properties": "Your organisations have no properties."
+      "settings.no_properties": "Your organisations have no properties.",
+      "settings.prefs_synced": "Your default organisation and default properties are kept with your mail account, so every browser and device you sign in with uses them.",
+      "settings.prefs_local": "Your mail server keeps no settings for plugins: your default organisation and default properties are kept in this browser only.",
+      "settings.prefs_failed": "Couldn't save the defaults with your mail account; they are kept in this browser: {error}"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -322,7 +326,10 @@
       "settings.property_gone": "Keine Ihrer Organisationen hat {name} noch; es wird ausgelassen.",
       "settings.remove_default": "{name} entfernen",
       "settings.add_default": "Standard-Eigenschaft hinzufügen",
-      "settings.no_properties": "Ihre Organisationen haben keine Eigenschaften."
+      "settings.no_properties": "Ihre Organisationen haben keine Eigenschaften.",
+      "settings.prefs_synced": "Ihre Standard-Organisation und Standard-Eigenschaften werden mit Ihrem Mailkonto gespeichert, jeder Browser und jedes Gerät, mit dem Sie sich anmelden, nutzt sie.",
+      "settings.prefs_local": "Ihr Mailserver speichert keine Einstellungen für Plugins: Ihre Standard-Organisation und Standard-Eigenschaften gelten nur in diesem Browser.",
+      "settings.prefs_failed": "Die Standardwerte konnten nicht mit Ihrem Mailkonto gespeichert werden; sie gelten in diesem Browser: {error}"
     }
   }
 }

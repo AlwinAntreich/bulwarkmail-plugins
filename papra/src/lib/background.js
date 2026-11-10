@@ -7,23 +7,13 @@ import { PapraError, errorText, toPapraError } from './errors.js';
 import { attachDocuments } from './attach.js';
 import { attachmentOf, saveAttachment } from './save.js';
 import { parseTagList } from './tags.js';
+import { readPrefs, updatePrefs } from './prefs.js';
 
 export const ACTION_SAVE = 'save-attachment';
 export const ACTION_ATTACH = 'from-papra';
-/**
- * The organisation the user chose as their default on the settings page.
- * The dialogs preselect only this; the plugin never sets it by itself, so a
- * save to a shared organisation doesn't make the next one go there too.
- */
-export const DEFAULT_ORGANIZATION_KEY = 'defaultOrganizationId';
-/** The user's default properties from Settings: [{ name, value }], by property name (properties.js). */
-export const DEFAULT_PROPERTIES_KEY = 'defaultProperties';
-/**
- * The user's own Papra account { id }, learned from the creator of their
- * first upload: Papra doesn't tell an API key whose it is. For "me" in a
- * Papra user property.
- */
-export const PAPRA_USER_KEY = 'papraUser';
+// The default organisation, default properties and the user's own Papra
+// account are preferences (prefs.js): kept with the mail account where the
+// server allows it, so they follow the user to other devices.
 /**
  * Below this a save is quick, and a spinner toast would only use up the
  * host's toast budget (5 per plugin in 10 seconds; past that they are
@@ -84,7 +74,7 @@ export function createBackground(api) {
       if (!ready) return null;
       const { connection, canTag, canSetProperties } = ready;
       const config = await Promise.resolve(api.config.get()).catch(() => ({}));
-      const stored = (key) => api.storage.get(key).catch(() => null);
+      const { prefs } = await readPrefs(api);
       const choice = await api.ui.openDialog({
         title: t('dialog.title'),
         slot: 'plugin-dialog',
@@ -95,10 +85,10 @@ export function createBackground(api) {
           connection,
           canTag,
           defaultTags: parseTagList(config?.defaultTags),
-          organizationId: await stored(DEFAULT_ORGANIZATION_KEY),
+          organizationId: prefs.defaultOrganizationId,
           canSetProperties,
-          defaultProperties: canSetProperties ? (await stored(DEFAULT_PROPERTIES_KEY)) || [] : [],
-          me: await stored(PAPRA_USER_KEY),
+          defaultProperties: canSetProperties ? prefs.defaultProperties : [],
+          me: prefs.papraUser,
         },
       });
       if (!choice?.organizationId) return null;
@@ -112,7 +102,9 @@ export function createBackground(api) {
       } finally {
         hideProgress(progress);
       }
-      if (result.document?.createdBy) await api.storage.set(PAPRA_USER_KEY, { id: result.document.createdBy }).catch(() => {});
+      // The upload's creator is the user's own Papra account: "me" in a Papra user property.
+      const creator = result.document?.createdBy;
+      if (creator && creator !== prefs.papraUser?.id) await updatePrefs(api, { papraUser: { id: creator } }).catch(() => {});
       report(attachment, choice, result);
       return result;
     } catch (err) {
@@ -160,7 +152,7 @@ export function createBackground(api) {
           view: 'pick',
           connection,
           canReadTags,
-          organizationId: await api.storage.get(DEFAULT_ORGANIZATION_KEY).catch(() => null),
+          organizationId: (await readPrefs(api)).prefs.defaultOrganizationId,
         },
       });
       const documents = Array.isArray(choice?.documents) ? choice.documents : [];

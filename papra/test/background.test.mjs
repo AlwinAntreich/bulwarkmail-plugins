@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fakeApi, proxyResponse } from '../../test-utils/fake-api.mjs';
-import { createBackground, ACTION_SAVE, ACTION_ATTACH, DEFAULT_ORGANIZATION_KEY, DEFAULT_PROPERTIES_KEY, PAPRA_USER_KEY, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
+import { createBackground, ACTION_SAVE, ACTION_ATTACH, PROGRESS_FROM_BYTES } from '../src/lib/background.js';
+
+// The browser copy of the preferences (prefs.js); the fake api's server keeps no account data.
+const DEFAULT_ORGANIZATION_KEY = 'defaultOrganizationId';
+const DEFAULT_PROPERTIES_KEY = 'defaultProperties';
+const PAPRA_USER_KEY = 'papraUser';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const SERVER = 'https://papra.example.com';
