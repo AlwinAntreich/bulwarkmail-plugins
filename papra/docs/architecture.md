@@ -30,6 +30,7 @@ describes the implementation and changes with it.
 | `src/ui/PropertyEditor.jsx` | the field for each property type, and pills to switch on and off |
 | `src/ui/DefaultProperties.jsx` | the default properties in Settings > Papra |
 | `src/lib/properties.js` | property definitions, values, defaults |
+| `src/lib/prefs.js` | the user's preferences, kept with the mail account or in the browser |
 | `src/ui/PickDialog.jsx` | the "Attach from Papra" dialog |
 | `src/ui/Settings.jsx` | Settings > Papra: connection and default organisation |
 | `src/ui/organizations.js` | which organisation a dialog starts with |
@@ -172,8 +173,8 @@ the controls, `DefaultProperties.jsx` the defaults in Settings.
   after the tags; a refused one doesn't stop the others. Value forms
   (checked against Papra 26.7.1): text and date strings, numbers, booleans,
   an option id, and arrays of option, user or document ids.
-- **Defaults** are `[{ name, value }]` in `api.storage`
-  (`defaultProperties`), by property name and, for choices, option name,
+- **Defaults** are `[{ name, value }]` in the preferences
+  (`defaultProperties`, see "Preferences across devices"), by property name and, for choices, option name,
   so they apply in every organisation with a property of that name.
   `applyDefaults` turns them into dialog values; a property or option the
   organisation lacks goes into `missingProperties`, shown in the dialog
@@ -188,6 +189,30 @@ the controls, `DefaultProperties.jsx` the defaults in Settings.
   click opens the editor for that type, Remove clears it, "Add property"
   lists the unset ones. A review line under both tabs. Tags are pills: the
   admin's defaults fixed, the five most-used (`TOP_TAGS`), "+ n more".
+
+## Preferences across devices
+
+`prefs.js` keeps the default organisation, the default properties and the
+user's own Papra account (`papraUser`, for "me") in `api.accountData`:
+Stalwart's metadata on the user's Inbox, the same in every browser
+(Stalwart 1.0 and later; `get` needs `email:read`, `set` `email:write`;
+at most 4 KB, 30 reads and 20 changes a minute).
+
+- `readPrefs` reads the account's copy and keeps a copy in `api.storage`.
+  The first time the account has none but the browser does, the browser's
+  move to the account.
+- `updatePrefs` reads the account's copy again right before writing and
+  merges the change into it, so a change made on another device meanwhile
+  is kept. A refused write (rate limit, size) leaves the change in the
+  browser and Settings says so.
+- Without server support (`supported: false`) everything stays in
+  `api.storage`; Settings says the defaults apply in this browser only.
+- Settings saves a typed default after a pause of 0.8 s or when the field
+  is left, a choice at once, to stay within the 20 changes a minute.
+- Checked in the test environment: with Bulwark's settings sync on,
+  `api.storage` doesn't follow the user to another browser. The test
+  Stalwart (0.16) keeps no plugin metadata, so the account path is covered
+  by unit tests (`prefs.test.mjs`) only.
 
 ## From Papra
 
