@@ -127,9 +127,14 @@ user would; as the first user she is also Papra's admin. Seeded:
   that case)
 - five PDF documents, some tagged, so search and `tag:invoice` find
   something in both organisations
+- properties in Alice, one of each type Papra has: Owner (text), Category
+  (choice: Private, Business), Amount (number), Due (date), Paid (yes/no),
+  Topics (multiple choice: Car, House), Responsible (Papra user), Related
+  (linked document); Team has only Owner
 - two API keys: `apiKey` with `organizations:read`, `documents:read`,
-  `documents:create`, `documents:update` and `tags:read`, and
-  `apiKeyWithoutTags` without the last two
+  `documents:create`, `documents:update`, `tags:read` and
+  `custom-properties:read`, and `apiKeyWithoutTags` with only the first
+  three. A seed run replaces a key whose permissions changed
 
 A key goes in the header `Authorization: Bearer <key>`. Papra keys always
 cover all of the user's organisations. `GET /api/api-keys/current` returns a
