@@ -127,6 +127,13 @@ test.describe('papra plugin', () => {
       await expect(toast(page, `Saved ${pdfName} to Alice in Papra (tags: Bulwark, Invoice).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
+      // "Open in Papra" opens the new document's page in Papra.
+      const popup = page.waitForEvent('popup');
+      await page.getByRole('button', { name: 'Open in Papra' }).first().click();
+      const tab = await popup;
+      if (tab.url() === 'about:blank') await tab.waitForURL(/^http/).catch(() => {});
+      expect(tab.url()).toBe(`${PAPRA}/organizations/${SECRETS.organizations.Alice}/documents/${doc.id}`);
+      await tab.close();
       expect(doc.tags.map((t) => t.name).sort()).toEqual(['Bulwark', 'Invoice']);
 
       // The same file again: Papra already has it.
