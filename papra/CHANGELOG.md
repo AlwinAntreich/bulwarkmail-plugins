@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+- After saving, the message has Open in Papra, which opens the new document in Papra to change it there. The message is a notification, so the plugin asks for the permission ui:notifications.
+
+### Changed
+- Save to Papra says when the API key can't set properties and what to do, instead of leaving them out without a word; Settings > Papra says how to connect a key that can.
+
 ## 0.1.3 (2026-11-10)
 
 ### Added

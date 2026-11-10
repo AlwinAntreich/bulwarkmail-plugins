@@ -140,6 +140,14 @@ attachment menu ── onAction (background.js)
   └─► one toast: saved / saved without some tags / tagging failed / already in Papra
 ```
 
+- **The result links the document.** After a save the message is a
+  notification (`api.notifications.show`, `ui:notifications`) with the
+  action **Open in Papra** → `<server>/organizations/:org/documents/:doc`,
+  the document's page in Papra's web app (its client route). Bulwark shows
+  it as a system notification when the user allowed them, else in the app,
+  and lists it in the notification panel; a click on the notification
+  itself opens the link too (`onNotificationClick`, by tag). Without the
+  permission, or when the host refuses the notification, a plain toast.
 - **One toast per action.** Bulwark drops a plugin's toasts past 5 in 10
   seconds, the result included. So a save reports in a single toast (a
   warning when tags are missing), and the spinner toast only shows from
