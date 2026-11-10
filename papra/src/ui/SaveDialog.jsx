@@ -150,6 +150,7 @@ export function SaveDialog({
         </Field>
       )}
       {organization && !canTag && <Alert tone="info" icon="info-circle">{t('save.cannot_tag')}</Alert>}
+      {organization && !canSetProperties && <Alert tone="info" icon="info-circle">{t('save.cannot_set_properties')}</Alert>}
       {organization && canTag && !tags && !error && <Spinner size="sm" label={t('common.loading')} />}
       {organization && canTag && tags && (
         <div role="group" aria-label={t('field.tags')}>

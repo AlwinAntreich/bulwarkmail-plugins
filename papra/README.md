@@ -119,7 +119,8 @@ properties that will be set show as "name: value", your defaults filled
 in: click one to change it for this document (the birth certificate you
 upload is Agata's, so she is the owner) or remove it, and **Add property**
 offers the organisation's other properties, each with a field for its type.
-A line under both tabs says what Papra will get. The plugin creates no
+A line under both tabs says what Papra will get. After saving, the message has an **Open in Papra** button that
+opens the new document in Papra, to change it there. The plugin creates no
 tags, properties or options: a default the organisation doesn't have is
 left out, and the message after saving says so. For a Papra user property,
 Papra shows the plugin only you (after your first save from Bulwark) and
@@ -152,4 +153,5 @@ way.
 | `email:blob-write` | add the documents you pick to the message |
 | `ui:observe` | the dialogs where you choose the organisation, tags and documents |
 | `ui:settings-section` | the Papra page in Settings: connection and default organisation |
+| `ui:notifications` | the message after saving, with **Open in Papra** for the new document; it is a notification on your device when you allowed Bulwark's notifications, otherwise one in the app |
 | `email:write` | keep your default organisation and default properties with your mail account (a small value in your Inbox's settings), so they follow you to other devices; the plugin changes no messages |

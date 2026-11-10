@@ -13,7 +13,8 @@
     "email:blob-write",
     "ui:composer-toolbar",
     "ui:observe",
-    "ui:settings-section"
+    "ui:settings-section",
+    "ui:notifications"
   ],
   "entrypoint": "index.js",
   "minAppVersion": "1.15.0",
@@ -177,7 +178,7 @@
       "save.done_property": "Done",
       "save.add_property": "Add property",
       "save.missing_properties": "Default properties left out, {organization} doesn’t have them: {properties}",
-      "settings.cannot_set_properties": "This key can't set properties: documents are saved without them. A key with custom-properties:read and documents:update can.",
+      "settings.cannot_set_properties": "This key can't set properties: documents are saved without them. Create a key with custom-properties:read and documents:update in Papra, then Disconnect here and connect the new key.",
       "settings.default_properties": "Default properties",
       "settings.default_properties_hint": "Filled in when you save to Papra, in every organisation that has a property of that name. You can change them for a single save.",
       "settings.default_value": "Default for {name}",
@@ -189,7 +190,11 @@
       "settings.no_properties": "Your organisations have no properties.",
       "settings.prefs_synced": "Your default organisation and default properties are kept with your mail account, so every browser and device you sign in with uses them.",
       "settings.prefs_local": "Your mail server keeps no settings for plugins: your default organisation and default properties are kept in this browser only.",
-      "settings.prefs_failed": "Couldn't save the defaults with your mail account; they are kept in this browser: {error}"
+      "settings.prefs_failed": "Couldn't save the defaults with your mail account; they are kept in this browser: {error}",
+      "done.title": "Saved to Papra",
+      "done.title_notes": "Saved to Papra, with notes",
+      "done.open": "Open in Papra",
+      "save.cannot_set_properties": "Your API key can't set properties, so none are offered. Create a key with custom-properties:read and documents:update in Papra and connect it in Settings > Papra."
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -317,7 +322,7 @@
       "save.done_property": "Fertig",
       "save.add_property": "Eigenschaft hinzufügen",
       "save.missing_properties": "Standard-Eigenschaften ausgelassen, {organization} hat sie nicht: {properties}",
-      "settings.cannot_set_properties": "Dieser Schlüssel kann keine Eigenschaften setzen: Dokumente werden ohne sie gespeichert. Ein Schlüssel mit custom-properties:read und documents:update kann es.",
+      "settings.cannot_set_properties": "Dieser Schlüssel kann keine Eigenschaften setzen: Dokumente werden ohne sie gespeichert. Erstellen Sie in Papra einen Schlüssel mit custom-properties:read und documents:update, trennen Sie hier die Verbindung und verbinden Sie den neuen Schlüssel.",
       "settings.default_properties": "Standard-Eigenschaften",
       "settings.default_properties_hint": "Werden beim Speichern in Papra ausgefüllt, in jeder Organisation mit einer Eigenschaft dieses Namens. Für einzelne Vorgänge können Sie sie ändern.",
       "settings.default_value": "Standardwert für {name}",
@@ -329,7 +334,11 @@
       "settings.no_properties": "Ihre Organisationen haben keine Eigenschaften.",
       "settings.prefs_synced": "Ihre Standard-Organisation und Standard-Eigenschaften werden mit Ihrem Mailkonto gespeichert, jeder Browser und jedes Gerät, mit dem Sie sich anmelden, nutzt sie.",
       "settings.prefs_local": "Ihr Mailserver speichert keine Einstellungen für Plugins: Ihre Standard-Organisation und Standard-Eigenschaften gelten nur in diesem Browser.",
-      "settings.prefs_failed": "Die Standardwerte konnten nicht mit Ihrem Mailkonto gespeichert werden; sie gelten in diesem Browser: {error}"
+      "settings.prefs_failed": "Die Standardwerte konnten nicht mit Ihrem Mailkonto gespeichert werden; sie gelten in diesem Browser: {error}",
+      "done.title": "In Papra gespeichert",
+      "done.title_notes": "In Papra gespeichert, mit Hinweisen",
+      "done.open": "In Papra öffnen",
+      "save.cannot_set_properties": "Ihr API-Schlüssel kann keine Eigenschaften setzen, daher werden keine angeboten. Erstellen Sie in Papra einen Schlüssel mit custom-properties:read und documents:update und verbinden Sie ihn unter Einstellungen > Papra."
     }
   }
 }

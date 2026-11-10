@@ -22,6 +22,8 @@ function setup({
   dialog = () => choice, confirm = () => true, upload = () => proxyResponse('{"document":{"id":"doc_1","name":"invoice.pdf"}}'),
   tag = () => ({ status: 204, ok: true, headers: {}, body: '' }), attachResult = true,
   property = () => ({ status: 204, ok: true, headers: {}, body: '' }),
+  // As without the ui:notifications permission: the plugin falls back to a toast.
+  notify = () => { throw new Error('Plugin "papra" lacks permission "ui:notifications"'); },
 } = {}) {
   let accounts = connected ? [{ credentialId: 'papra', origin: SERVER, connected: true }] : [];
   return fakeApi({
@@ -44,6 +46,7 @@ function setup({
       'ui.confirm': confirm,
       'email.getAttachment': () => pdf,
       'toast.progress': () => 'progress-1',
+      'notifications.show': notify,
       'jmap.uploadBlob': (bytes, name, type) => ({ blobId: `blob-${name}`, size: bytes.byteLength, type }),
       'composer.attach': (...args) => (typeof attachResult === 'function' ? attachResult(...args) : attachResult),
     },
@@ -138,6 +141,32 @@ describe('saving an attachment', () => {
     await createBackground(api).onAction(click);
     expect(api.calls('ui.openDialog')[0].args[0].extraProps).toMatchObject({ canSetProperties: false, defaultProperties: [] });
     expect(fetched(api).filter((r) => r.includes('custom-properties'))).toEqual([]);
+  });
+
+  it('links the saved document in Papra from a notification, and opens it on a click', async () => {
+    const api = setup({ notify: () => undefined });
+    const bg = createBackground(api);
+    await bg.onAction(click);
+    expect(api.calls('notifications.show')[0].args[0]).toEqual({
+      title: 'Saved to Papra',
+      body: 'Saved invoice.pdf to Alice in Papra (tags: Bulwark, Invoice).',
+      tag: 'doc-doc_1',
+      action: { label: 'Open in Papra', url: `${SERVER}/organizations/org_a/documents/doc_1` },
+    });
+    expect(toasts(api, 'success')).toEqual([]);
+    await bg.onNotificationClick({ tag: 'doc-doc_1' });
+    expect(api.calls('ui.openExternalUrl')[0].args).toEqual([`${SERVER}/organizations/org_a/documents/doc_1`]);
+    await bg.onNotificationClick({ tag: 'other' });
+    expect(api.calls('ui.openExternalUrl')).toHaveLength(1);
+  });
+
+  it('says in the notification\'s title when there are notes', async () => {
+    const api = setup({ notify: () => undefined, dialog: () => ({ ...choice, tagIds: ['t9'], tagNames: ['Car'], missingDefaults: ['email'] }) });
+    await createBackground(api).onAction(click);
+    expect(api.calls('notifications.show')[0].args[0]).toMatchObject({
+      title: 'Saved to Papra, with notes',
+      body: 'Saved invoice.pdf to Alice in Papra (tags: Car). Default tags left out, Alice doesn’t have them: email',
+    });
   });
 
   it('tags nothing with a key that can\'t tag', async () => {

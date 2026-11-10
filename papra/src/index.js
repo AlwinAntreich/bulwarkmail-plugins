@@ -23,6 +23,9 @@ export const hooks = {
   onAction(event) {
     if (background) void Promise.resolve(background.onAction(event)).catch(() => {});
   },
+  onNotificationClick(event) {
+    if (background) void background.onNotificationClick(event).catch(() => {});
+  },
 };
 
 function Dialog(props) {

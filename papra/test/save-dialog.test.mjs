@@ -109,9 +109,10 @@ describe('SaveDialog: where and tags', () => {
     expect(result(onResult)).toMatchObject({ tagIds: [], properties: [] });
   });
 
-  it('shows no properties tab without the property permission', async () => {
+  it('shows no properties tab without the property permission, and says why', async () => {
     await open();
     expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.getByText(/^Your API key can't set properties, so none are offered\. Create a key with custom-properties:read/)).toBeTruthy();
   });
 
   it('hands back null on Cancel', async () => {

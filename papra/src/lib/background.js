@@ -3,6 +3,7 @@
 // wires it to the host.
 
 import { checkKey, clientFor, connect, resolveConnection } from './connection.js';
+import { documentUrl } from './client.js';
 import { PapraError, errorText, toPapraError } from './errors.js';
 import { attachDocuments } from './attach.js';
 import { attachmentOf, saveAttachment } from './save.js';
@@ -105,7 +106,7 @@ export function createBackground(api) {
       // The upload's creator is the user's own Papra account: "me" in a Papra user property.
       const creator = result.document?.createdBy;
       if (creator && creator !== prefs.papraUser?.id) await updatePrefs(api, { papraUser: { id: creator } }).catch(() => {});
-      report(attachment, choice, result);
+      await report(attachment, choice, result, connection.server);
       return result;
     } catch (err) {
       const e = toPapraError(err);
@@ -120,7 +121,16 @@ export function createBackground(api) {
    * budget. It names the tags the document got, so a skipped default tag
    * doesn't read as "saved without tags".
    */
-  function report(attachment, choice, { tagged = [], tagError, propertiesSet = [], propertyErrors = [] }) {
+  /** Links of the notifications shown, by tag, for a click on a notification itself. */
+  const links = new Map();
+
+  /**
+   * One message per save, so a warning isn't dropped by the host's toast
+   * budget, with a link to the new document in Papra to change it there.
+   * The link needs a notification (a toast takes none); where the host
+   * refuses one, a plain toast.
+   */
+  async function report(attachment, choice, { document, tagged = [], tagError, propertiesSet = [], propertyErrors = [] }, server) {
     const ids = choice.tagIds || [];
     const names = tagged.map((id) => choice.tagNames?.[ids.indexOf(id)]).filter(Boolean);
     const shown = (choice.properties || []).filter((p) => propertiesSet.includes(p.name)).map((p) => `${p.name}: ${p.text}`);
@@ -132,8 +142,29 @@ export function createBackground(api) {
     if (choice.missingProperties?.length) notes.push(t('done.missing_properties', { ...vars, properties: choice.missingProperties.join(', ') }));
     if (propertyErrors.length) notes.push(t('done.property_failed', { properties: propertyErrors.map((p) => p.name).join(', '), error: errorText(t, propertyErrors[0].error) }));
     const saved = details ? t('done.saved_details', vars) : t('done.saved', vars);
-    if (notes.length) api.toast.warning(`${saved} ${notes.join(' ')}`);
-    else api.toast.success(saved);
+    const text = notes.length ? `${saved} ${notes.join(' ')}` : saved;
+    if (document?.id && server) {
+      const url = documentUrl(server, choice.organizationId, document.id);
+      const tag = `doc-${document.id}`.slice(0, 64).replace(/[^A-Za-z0-9._:-]/g, '_');
+      try {
+        await api.notifications.show({
+          title: notes.length ? t('done.title_notes') : t('done.title'),
+          body: text.slice(0, 300),
+          tag,
+          action: { label: t('done.open'), url },
+        });
+        links.set(tag, url);
+        return;
+      } catch { /* no notification permission, the host refused the link, or too many: a toast */ }
+    }
+    if (notes.length) api.toast.warning(text);
+    else api.toast.success(text);
+  }
+
+  /** A click on a save notification opens the document in Papra. */
+  async function onNotificationClick({ tag } = {}) {
+    const url = typeof tag === 'string' ? links.get(tag) : null;
+    if (url) await api.ui.openExternalUrl(url);
   }
 
   async function attachFlow(context) {
@@ -190,5 +221,5 @@ export function createBackground(api) {
       .catch((err) => api.log?.warn?.(`setting up ${surface} failed`, err?.message))));
   }
 
-  return { onAction, registerUi, saveFlow, attachFlow };
+  return { onAction, onNotificationClick, registerUi, saveFlow, attachFlow };
 }
