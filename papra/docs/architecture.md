@@ -26,7 +26,10 @@ describes the implementation and changes with it.
 | `src/lib/save.js` | read an attachment, upload it, tag it |
 | `src/lib/attach.js` | download documents and add them to the composer |
 | `src/lib/tags.js` | the admin's default tags: parse the list, match it against an organisation's tags |
-| `src/ui/SaveDialog.jsx` | the "Save to Papra" dialog |
+| `src/ui/SaveDialog.jsx` | the "Save to Papra" dialog: tabs, tag pills, property chips |
+| `src/ui/PropertyEditor.jsx` | the field for each property type, and pills to switch on and off |
+| `src/ui/DefaultProperties.jsx` | the default properties in Settings > Papra |
+| `src/lib/properties.js` | property definitions, values, defaults |
 | `src/ui/PickDialog.jsx` | the "Attach from Papra" dialog |
 | `src/ui/Settings.jsx` | Settings > Papra: connection and default organisation |
 | `src/ui/organizations.js` | which organisation a dialog starts with |
@@ -155,6 +158,36 @@ attachment menu ── onAction (background.js)
 - Strings: `locales` in `manifest.json`, English and German. Messages say
   what failed and what to do (ask the admin, connect, give the key a
   permission).
+
+## Properties (Save to Papra)
+
+`properties.js` holds the rules, `SaveDialog.jsx` and `PropertyEditor.jsx`
+the controls, `DefaultProperties.jsx` the defaults in Settings.
+
+- **Definitions** come from `GET /api/organizations/:org/custom-properties`
+  (`custom-properties:read`), in Papra's order. All of Papra's types:
+  text, number, date, yes/no, choice, multiple choice, Papra user, linked
+  document. Values go with `PUT …/documents/:doc/custom-properties/:def`
+  (`documents:update` and `custom-properties:read`), one per property
+  after the tags; a refused one doesn't stop the others. Value forms
+  (checked against Papra 26.7.1): text and date strings, numbers, booleans,
+  an option id, and arrays of option, user or document ids.
+- **Defaults** are `[{ name, value }]` in `api.storage`
+  (`defaultProperties`), by property name and, for choices, option name,
+  so they apply in every organisation with a property of that name.
+  `applyDefaults` turns them into dialog values; a property or option the
+  organisation lacks goes into `missingProperties`, shown in the dialog
+  and the toast. A linked document can't be a default; a Papra user
+  default is "me".
+- **Me:** Papra doesn't tell an API key whose it is, and doesn't let it list
+  members. The creator of the user's first upload (`createdBy`) is kept as
+  `papraUser`; other users come from Papra user values on the latest 100
+  documents (`usersIn`).
+- **The dialog:** with `canSetProperties` two tabs, "Where and tags" and
+  "Properties (n)". Properties shows only what will be set, as chips; a
+  click opens the editor for that type, Remove clears it, "Add property"
+  lists the unset ones. A review line under both tabs. Tags are pills: the
+  admin's defaults fixed, the five most-used (`TOP_TAGS`), "+ n more".
 
 ## From Papra
 
