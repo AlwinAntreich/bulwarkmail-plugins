@@ -86,6 +86,14 @@ describe('Settings', () => {
     expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Category', value: 'Private' }]);
   });
 
+  it('removes default properties no organisation has any more, and says so', async () => {
+    const api = makeApi({ permissions: [...FULL, 'custom-properties:read'] });
+    await api.storage.set(DEFAULT_PROPERTIES_KEY, [{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Project', value: 'X' }]);
+    await show(api);
+    await screen.findByText('Removed from your defaults, no organisation has them any more: Project');
+    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }]);
+  });
+
   it('says when the key can\'t set properties, and offers no defaults', async () => {
     await show(makeApi());
     await screen.findByText(/This key can't set properties/);

@@ -193,7 +193,7 @@ export function SaveDialog({
         <div role="group" aria-label={t('save.edit_property', { name: editingDef.name })}>
           <Stack gap={2}>
             <PropertyEditor def={editingDef} value={values[editingDef.id]} onChange={(v) => setValue(editingDef.id, v)}
-              users={users} client={client} organizationId={selected} t={t} />
+              users={users} client={client} organizationId={selected} t={t} locale={api.i18n.locale} />
             <Row gap={3}>
               <LinkButton onClick={() => { clearValue(editingDef.id); setEditing(null); }}>{t('save.remove_property')}</LinkButton>
               <LinkButton onClick={() => setEditing(null)}>{t('save.done_property')}</LinkButton>

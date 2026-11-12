@@ -8,7 +8,7 @@ import { PapraError, errorText, toPapraError } from './errors.js';
 import { attachDocuments } from './attach.js';
 import { attachmentOf, saveAttachment } from './save.js';
 import { parseTagList } from './tags.js';
-import { readPrefs, updatePrefs } from './prefs.js';
+import { pruneDefaults, readPrefs, updatePrefs } from './prefs.js';
 
 export const ACTION_SAVE = 'save-attachment';
 export const ACTION_ATTACH = 'from-papra';
@@ -106,7 +106,11 @@ export function createBackground(api) {
       // The upload's creator is the user's own Papra account: "me" in a Papra user property.
       const creator = result.document?.createdBy;
       if (creator && creator !== prefs.papraUser?.id) await updatePrefs(api, { papraUser: { id: creator } }).catch(() => {});
-      await report(attachment, choice, result, connection.server);
+      // A default the organisation lacks may be gone from Papra altogether.
+      const removed = choice.missingProperties?.length
+        ? await pruneDefaults(api, clientFor(api, connection)).catch(() => [])
+        : [];
+      await report(attachment, choice, result, connection.server, removed);
       return result;
     } catch (err) {
       const e = toPapraError(err);
@@ -130,7 +134,7 @@ export function createBackground(api) {
    * The link needs a notification (a toast takes none); where the host
    * refuses one, a plain toast.
    */
-  async function report(attachment, choice, { document, tagged = [], tagError, propertiesSet = [], propertyErrors = [] }, server) {
+  async function report(attachment, choice, { document, tagged = [], tagError, propertiesSet = [], propertyErrors = [] }, server, removed = []) {
     const ids = choice.tagIds || [];
     const names = tagged.map((id) => choice.tagNames?.[ids.indexOf(id)]).filter(Boolean);
     const shown = (choice.properties || []).filter((p) => propertiesSet.includes(p.name)).map((p) => `${p.name}: ${p.text}`);
@@ -140,6 +144,7 @@ export function createBackground(api) {
     if (tagError) notes.push(t('done.tag_failed', { error: errorText(t, tagError) }));
     else if (choice.missingDefaults?.length) notes.push(t('done.missing_defaults', { ...vars, tags: choice.missingDefaults.join(', ') }));
     if (choice.missingProperties?.length) notes.push(t('done.missing_properties', { ...vars, properties: choice.missingProperties.join(', ') }));
+    if (removed.length) notes.push(t('done.defaults_removed', { properties: removed.join(', ') }));
     if (propertyErrors.length) notes.push(t('done.property_failed', { properties: propertyErrors.map((p) => p.name).join(', '), error: errorText(t, propertyErrors[0].error) }));
     const saved = details ? t('done.saved_details', vars) : t('done.saved', vars);
     const text = notes.length ? `${saved} ${notes.join(' ')}` : saved;

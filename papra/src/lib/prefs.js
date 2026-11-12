@@ -93,3 +93,25 @@ export async function updatePrefs(api, patch) {
   await api.accountData.set(undefined, compact(next));
   return { prefs: next, synced: true };
 }
+
+/** The defaults whose property some organisation still has (by name), and the names of the others. */
+export function stillOffered(defaults, propertyNames) {
+  const known = new Set([...propertyNames].map((n) => String(n).toLowerCase()));
+  const keep = defaults.filter((d) => known.has(d.name.toLowerCase()));
+  return { keep, removed: defaults.filter((d) => !keep.includes(d)).map((d) => d.name) };
+}
+
+/**
+ * Remove the default properties none of the user's organisations has any
+ * more (deleted in Papra). Asks every organisation; when one can't be asked,
+ * nothing is removed, as its properties are unknown.
+ * @returns {Promise<string[]>} the names removed
+ */
+export async function pruneDefaults(api, client) {
+  const organizations = await client.organizations();
+  const lists = await Promise.all(organizations.map((o) => client.propertyDefinitions(o.id)));
+  const { prefs } = await readPrefs(api);
+  const { keep, removed } = stillOffered(prefs.defaultProperties, lists.flat().map((d) => d.name));
+  if (removed.length) await updatePrefs(api, { defaultProperties: keep });
+  return removed;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Checkbox, Chip, Field, Input, LinkButton, Row, Select, Stack, Text } from '@plugin-host/ui';
+import { DateField } from './DateField.jsx';
 
 /** Pills to switch on and off: `items` [{ id, name }], `value` the ids (or objects with ids) switched on. */
 export function TogglePills({ items, value = [], onChange, label, idOf = (x) => x }) {
@@ -50,7 +51,7 @@ function DocumentPicker({ client, organizationId, value, onChange, t }) {
  * the value forms). `users` are the Papra users the plugin knows, for a
  * Papra user property.
  */
-export function PropertyEditor({ def, value, onChange, users = [], client, organizationId, t }) {
+export function PropertyEditor({ def, value, onChange, users = [], client, organizationId, t, locale }) {
   const label = def.name;
   switch (def.type) {
     case 'text':
@@ -58,7 +59,7 @@ export function PropertyEditor({ def, value, onChange, users = [], client, organ
     case 'number':
       return <Field label={label}><Input type="number" step="any" value={value ?? ''} onChange={(e) => onChange(e.target.value)} /></Field>;
     case 'date':
-      return <Field label={label}><Input type="date" value={value ?? ''} onChange={(e) => onChange(e.target.value)} /></Field>;
+      return <DateField label={label} value={value ?? ''} onChange={onChange} t={t} locale={locale} />;
     case 'boolean':
       return <Checkbox checked={value === true} onChange={(checked) => onChange(!!checked)} label={label} />;
     case 'select':

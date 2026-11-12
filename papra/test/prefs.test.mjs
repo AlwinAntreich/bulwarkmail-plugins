@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fakeApi } from '../../test-utils/fake-api.mjs';
-import { readPrefs, updatePrefs, normalizePrefs } from '../src/lib/prefs.js';
+import { readPrefs, updatePrefs, normalizePrefs, stillOffered, pruneDefaults } from '../src/lib/prefs.js';
 
 /** A fake api whose mail account keeps plugin data (`supported`), starting with `value`. */
 function setup({ supported = true, value = null, setFails = false } = {}) {
@@ -86,5 +86,26 @@ describe('normalizePrefs', () => {
     expect(normalizePrefs({ defaultOrganizationId: 7, defaultProperties: [{ name: '' }, { name: 'Owner', value: 'x', extra: 1 }, null], papraUser: { id: 3 }, other: true }))
       .toEqual({ defaultOrganizationId: null, defaultProperties: [{ name: 'Owner', value: 'x' }], papraUser: null });
     expect(normalizePrefs(null)).toEqual({ defaultOrganizationId: null, defaultProperties: [], papraUser: null });
+  });
+});
+
+describe('removing defaults no organisation has any more', () => {
+  const defaults = [{ name: 'Owner', value: 'A' }, { name: 'Project', value: 'X' }, { name: 'category', value: 'Private' }];
+
+  it('keeps the defaults some organisation still has, by name', () => {
+    expect(stillOffered(defaults, ['Category', 'Owner'])).toEqual({ keep: [defaults[0], defaults[2]], removed: ['Project'] });
+  });
+
+  it('asks every organisation, and removes nothing when one can\'t be asked', async () => {
+    const { api } = setup({ supported: false });
+    await api.storage.set('defaultProperties', defaults);
+    const client = (fail) => ({
+      organizations: async () => [{ id: 'a' }, { id: 't' }],
+      propertyDefinitions: async (id) => { if (fail && id === 't') throw new Error('unreachable'); return id === 'a' ? [{ name: 'Owner' }] : [{ name: 'Category' }]; },
+    });
+    await expect(pruneDefaults(api, client(true))).rejects.toThrow('unreachable');
+    expect(await api.storage.get('defaultProperties')).toEqual(defaults);
+    expect(await pruneDefaults(api, client(false))).toEqual(['Project']);
+    expect(await api.storage.get('defaultProperties')).toEqual([defaults[0], defaults[2]]);
   });
 });

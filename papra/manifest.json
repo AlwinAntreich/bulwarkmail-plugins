@@ -184,7 +184,6 @@
       "settings.default_value": "Default for {name}",
       "settings.default_me": "Me: your Papra account, once you have saved a document from Bulwark",
       "settings.no_default_properties": "No default properties yet.",
-      "settings.property_gone": "None of your organisations has {name} any more; it is left out.",
       "settings.remove_default": "Remove {name}",
       "settings.add_default": "Add a default property",
       "settings.no_properties": "Your organisations have no properties.",
@@ -194,7 +193,18 @@
       "done.title": "Saved to Papra",
       "done.title_notes": "Saved to Papra, with notes",
       "done.open": "Open in Papra",
-      "save.cannot_set_properties": "Your API key can't set properties, so none are offered. Create a key with custom-properties:read and documents:update in Papra and connect it in Settings > Papra."
+      "save.cannot_set_properties": "Your API key can't set properties, so none are offered. Create a key with custom-properties:read and documents:update in Papra and connect it in Settings > Papra.",
+      "date.day": "{name}: day",
+      "date.month": "{name}: month",
+      "date.year": "{name}: year",
+      "date.day_none": "Day",
+      "date.month_none": "Month",
+      "date.year_none": "Year",
+      "date.today": "Today",
+      "date.clear": "Clear",
+      "done.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
+      "settings.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
+      "settings.property_gone": "None of the organisations Papra answered for has {name} now; it is left out until one does."
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -328,7 +338,6 @@
       "settings.default_value": "Standardwert für {name}",
       "settings.default_me": "Ich: Ihr Papra-Konto, sobald Sie ein Dokument aus Bulwark gespeichert haben",
       "settings.no_default_properties": "Noch keine Standard-Eigenschaften.",
-      "settings.property_gone": "Keine Ihrer Organisationen hat {name} noch; es wird ausgelassen.",
       "settings.remove_default": "{name} entfernen",
       "settings.add_default": "Standard-Eigenschaft hinzufügen",
       "settings.no_properties": "Ihre Organisationen haben keine Eigenschaften.",
@@ -338,7 +347,18 @@
       "done.title": "In Papra gespeichert",
       "done.title_notes": "In Papra gespeichert, mit Hinweisen",
       "done.open": "In Papra öffnen",
-      "save.cannot_set_properties": "Ihr API-Schlüssel kann keine Eigenschaften setzen, daher werden keine angeboten. Erstellen Sie in Papra einen Schlüssel mit custom-properties:read und documents:update und verbinden Sie ihn unter Einstellungen > Papra."
+      "save.cannot_set_properties": "Ihr API-Schlüssel kann keine Eigenschaften setzen, daher werden keine angeboten. Erstellen Sie in Papra einen Schlüssel mit custom-properties:read und documents:update und verbinden Sie ihn unter Einstellungen > Papra.",
+      "date.day": "{name}: Tag",
+      "date.month": "{name}: Monat",
+      "date.year": "{name}: Jahr",
+      "date.day_none": "Tag",
+      "date.month_none": "Monat",
+      "date.year_none": "Jahr",
+      "date.today": "Heute",
+      "date.clear": "Leeren",
+      "done.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
+      "settings.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
+      "settings.property_gone": "Keine der Organisationen, für die Papra geantwortet hat, hat {name} gerade; es wird ausgelassen, bis eine es hat."
     }
   }
 }

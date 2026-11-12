@@ -109,7 +109,9 @@ Private. The same page shows what your key may do and disconnects it. The
 default organisation and default properties are kept with your mail
 account, so every browser and device you sign in with uses them; this
 needs Stalwart 1.0 or later, and on an older mail server they stay in the
-browser you set them in. The page says which applies.
+browser you set them in. The page says which applies. A default property that no organisation has any more,
+because it was deleted in Papra, is removed from your defaults, and you are
+told.
 
 Open an attachment's menu in a message and choose **Save to Papra**. On
 **Where and tags**, pick the organisation and the tags: the admin's
@@ -119,7 +121,8 @@ properties that will be set show as "name: value", your defaults filled
 in: click one to change it for this document (the birth certificate you
 upload is Agata's, so she is the owner) or remove it, and **Add property**
 offers the organisation's other properties, each with a field for its type.
-A line under both tabs says what Papra will get. After saving, the message has an **Open in Papra** button that
+A date is chosen from day, month and year lists (or Today): a browser's own date
+picker doesn't open inside Bulwark's plugin frame. A line under both tabs says what Papra will get. After saving, the message has an **Open in Papra** button that
 opens the new document in Papra, to change it there. The plugin creates no
 tags, properties or options: a default the organisation doesn't have is
 left out, and the message after saving says so. For a Papra user property,

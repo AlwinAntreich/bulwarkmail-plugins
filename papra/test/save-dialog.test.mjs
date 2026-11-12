@@ -21,7 +21,7 @@ const TAGS = {
 };
 const def = (id, name, type, options = []) => ({ id, name, key: name.toLowerCase(), type, displayOrder: 0, options: options.map((o, i) => ({ id: `${id}_o${i}`, name: o })) });
 const DEFS = {
-  org_a: { propertyDefinitions: [def('p1', 'Owner', 'text'), def('p2', 'Category', 'select', ['Private', 'Business']), def('p3', 'Amount', 'number'), def('p4', 'Paid', 'boolean'), def('p5', 'Responsible', 'user_relation'), def('p6', 'Related', 'document_relation')] },
+  org_a: { propertyDefinitions: [def('p1', 'Owner', 'text'), def('p2', 'Category', 'select', ['Private', 'Business']), def('p3', 'Amount', 'number'), def('p4', 'Paid', 'boolean'), def('p5', 'Responsible', 'user_relation'), def('p6', 'Related', 'document_relation'), def('p7', 'Due', 'date')] },
   org_t: { propertyDefinitions: [def('q1', 'Owner', 'text')] },
 };
 const DOCS = { documents: [{ id: 'd1', name: 'contract.pdf', customProperties: [{ type: 'user_relation', value: [{ userId: 'u_karin', name: 'Karin' }] }] }], documentsCount: 1 };
@@ -165,7 +165,7 @@ describe('SaveDialog: properties', () => {
     await tab('Properties');
     await press(screen.getByRole('button', { name: 'Add property' }));
     const list = screen.getByRole('group', { name: 'Add property' });
-    expect(list.textContent).toBe('AmountnumberPaidyes/noRelatedlinked documentResponsiblePapra user');
+    expect(list.textContent).toBe('AmountnumberDuedatePaidyes/noRelatedlinked documentResponsiblePapra user');
     await press(screen.getByRole('button', { name: 'Amount' }));
     await act(async () => { fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '129.90' } }); });
     await press(screen.getByRole('button', { name: 'Done' }));
@@ -187,6 +187,20 @@ describe('SaveDialog: properties', () => {
       { id: 'p6', name: 'Related', value: ['d1'], text: 'contract.pdf' },
       { id: 'p5', name: 'Responsible', value: ['u_me'], text: 'Me' },
     ]);
+  });
+
+  it('takes a date from day, month and year lists', async () => {
+    const { onResult } = await withProps();
+    await tab('Properties');
+    await press(screen.getByRole('button', { name: 'Add property' }));
+    await press(screen.getByRole('button', { name: 'Due' }));
+    for (const [list, value] of [['Due: day', '1'], ['Due: month', '12'], ['Due: year', '2026']]) {
+      await act(async () => { fireEvent.change(screen.getByLabelText(list), { target: { value } }); });
+    }
+    await press(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.getByRole('button', { name: 'Due: 2026-12-01' })).toBeTruthy();
+    await press(save());
+    expect(result(onResult).properties).toContainEqual({ id: 'p7', name: 'Due', value: '2026-12-01', text: '2026-12-01' });
   });
 
   it('starts over with the defaults when the user switches organisation', async () => {

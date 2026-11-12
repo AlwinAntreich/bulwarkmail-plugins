@@ -24,6 +24,8 @@ function setup({
   property = () => ({ status: 204, ok: true, headers: {}, body: '' }),
   // As without the ui:notifications permission: the plugin falls back to a toast.
   notify = () => { throw new Error('Plugin "papra" lacks permission "ui:notifications"'); },
+  orgs = () => ({ status: 404, ok: false, headers: {}, body: '' }),
+  definitions = () => ({ status: 404, ok: false, headers: {}, body: '' }),
 } = {}) {
   let accounts = connected ? [{ credentialId: 'papra', origin: SERVER, connected: true }] : [];
   return fakeApi({
@@ -39,6 +41,8 @@ function setup({
         if (path === '/api/organizations/org_a/documents' && init.method === 'POST') return upload();
         if (path.endsWith('/tags') && init.method === 'POST') return tag();
         if (/\/custom-properties\/[^/]+$/.test(path) && init.method === 'PUT') return property(path);
+        if (path === '/api/organizations') return orgs();
+        if (/\/custom-properties$/.test(path)) return definitions();
         if (/\/documents\/[^/]+\/file$/.test(path)) return { status: 200, ok: true, headers: {}, body: new Uint8Array(5).buffer };
         return { status: 404, ok: false, headers: {}, body: '' };
       },
@@ -123,6 +127,19 @@ describe('saving an attachment', () => {
     expect(toasts(api, 'warning')).toEqual(['Saved invoice.pdf to Alice in Papra (tags: Bulwark, Invoice; Owner: Agata; Category: Private). Default properties left out, Alice doesn’t have them: Project']);
     // The upload's creator is the user's own Papra account, for "me".
     expect(await api.storage.get(PAPRA_USER_KEY)).toEqual({ id: 'usr_me' });
+  });
+
+  it('removes a default property no organisation has any more after a save that left it out', async () => {
+    const api = setup({
+      permissions: [...FULL, 'custom-properties:read'],
+      dialog: () => ({ ...choice, properties: [], missingProperties: ['Project'] }),
+      orgs: () => proxyResponse('{"organizations":[{"id":"org_a","name":"Alice"}]}'),
+      definitions: () => proxyResponse('{"propertyDefinitions":[{"id":"p1","name":"Owner","type":"text"}]}'),
+    });
+    await api.storage.set(DEFAULT_PROPERTIES_KEY, [{ name: 'Owner', value: 'A' }, { name: 'Project', value: 'X' }]);
+    await createBackground(api).onAction(click);
+    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'A' }]);
+    expect(toasts(api, 'warning')[0]).toContain('Removed from your defaults, no organisation has them any more: Project');
   });
 
   it('says which properties Papra refused', async () => {
