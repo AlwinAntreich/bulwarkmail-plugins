@@ -1,5 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Checkbox, Chip, Field, Input, LinkButton, Row, Select, Stack, Text } from '@plugin-host/ui';
+import { Checkbox, Chip, Field, Input, LinkButton, Row, Stack, Text } from '@plugin-host/ui';
+import { DateField } from './DateField.jsx';
+
+/** One pill of several on at a time, for a choice: a click picks it, a click on the picked one unpicks it. */
+export function ChoicePills({ items, value, onChange, label }) {
+  return (
+    <div role="group" aria-label={label}>
+      <Row gap={2}>
+        {items.map((item) => (
+          <Chip key={item.id} label={item.id === value ? `✓ ${item.name}` : item.name}
+            onClick={() => onChange(item.id === value ? undefined : item.id)} />
+        ))}
+      </Row>
+    </div>
+  );
+}
 
 /** Pills to switch on and off: `items` [{ id, name }], `value` the ids (or objects with ids) switched on. */
 export function TogglePills({ items, value = [], onChange, label, idOf = (x) => x }) {
@@ -48,50 +63,38 @@ function DocumentPicker({ client, organizationId, value, onChange, t }) {
 /**
  * The control for one property's value, by its type (see properties.js for
  * the value forms). `users` are the Papra users the plugin knows, for a
- * Papra user property.
+ * Papra user property. `bare`: no label of its own, as in the save window's
+ * property rows, where the row names the property; the controls carry it as
+ * their accessible name.
  */
-export function PropertyEditor({ def, value, onChange, users = [], client, organizationId, t }) {
+export function PropertyEditor({ def, value, onChange, users = [], client, organizationId, t, locale, bare = false }) {
   const label = def.name;
+  const labelled = (control) => (bare ? control : <Field label={label}>{control}</Field>);
+  const titled = (body) => (bare ? body : <Stack gap={1}><Text>{label}</Text>{body}</Stack>);
   switch (def.type) {
     case 'text':
-      return <Field label={label}><Input type="text" value={value ?? ''} onChange={(e) => onChange(e.target.value)} /></Field>;
+      return labelled(<Input type="text" aria-label={bare ? label : undefined} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />);
     case 'number':
-      return <Field label={label}><Input type="number" step="any" value={value ?? ''} onChange={(e) => onChange(e.target.value)} /></Field>;
+      return labelled(<Input type="number" step="any" aria-label={bare ? label : undefined} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />);
     case 'date':
-      return <Field label={label}><Input type="date" value={value ?? ''} onChange={(e) => onChange(e.target.value)} /></Field>;
+      return <DateField label={label} bare={bare} value={value ?? ''} onChange={onChange} t={t} locale={locale} />;
     case 'boolean':
-      return <Checkbox checked={value === true} onChange={(checked) => onChange(!!checked)} label={label} />;
+      return <Checkbox checked={value === true} onChange={(checked) => onChange(!!checked)} label={bare ? t('prop.yes') : label} />;
     case 'select':
-      return (
-        <Field label={label}>
-          <Select block value={value ?? ''} onChange={(v) => onChange(v || undefined)}
-            options={[{ value: '', label: t('prop.not_set') }, ...def.options.map((o) => ({ value: o.id, label: o.name }))]} />
-        </Field>
-      );
+      return titled(<ChoicePills items={def.options} value={value} onChange={onChange} label={label} />);
     case 'multi_select':
-      return (
-        <Stack gap={1}>
-          <Text>{label}</Text>
-          <TogglePills items={def.options} value={value ?? []} onChange={onChange} label={label} />
-        </Stack>
-      );
+      return titled(<TogglePills items={def.options} value={value ?? []} onChange={onChange} label={label} />);
     case 'user_relation':
-      return (
+      return titled(
         <Stack gap={1}>
-          <Text>{label}</Text>
           {users.length > 0
             ? <TogglePills items={users.map((u) => ({ ...u, chosen: u }))} value={value ?? []} onChange={onChange} label={label} idOf={(u) => u.id} />
             : null}
           <Text tone="muted">{t('prop.users_hint')}</Text>
-        </Stack>
+        </Stack>,
       );
     case 'document_relation':
-      return (
-        <Stack gap={1}>
-          <Text>{label}</Text>
-          <DocumentPicker client={client} organizationId={organizationId} value={value ?? []} onChange={onChange} t={t} />
-        </Stack>
-      );
+      return titled(<DocumentPicker client={client} organizationId={organizationId} value={value ?? []} onChange={onChange} t={t} />);
     default:
       return null;
   }

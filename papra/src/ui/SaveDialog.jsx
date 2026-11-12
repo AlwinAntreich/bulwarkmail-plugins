@@ -14,11 +14,11 @@ export const TOP_TAGS = 5;
 /**
  * The "Save to Papra" dialog. "Where and tags": the organisation, the
  * admin's default tags (fixed) and the organisation's tags as pills, the
- * most used first. "Properties" (with custom-properties:read): only the
- * properties that will be set, as "name: value" chips, the user's defaults
- * filled in; a click edits one, "Add property" offers the others. A review
- * line under both says what Papra will get. Hands the choice back with
- * onResult; the background reads the attachment and saves it.
+ * most used first. "Properties" (with custom-properties:read): a row per
+ * property to set, its name and its field, edited in place; the user's
+ * defaults start as rows, × takes one off, "Add property" adds a row. A
+ * review line under both says what Papra will get. Hands the choice back
+ * with onResult; the background reads the attachment and saves it.
  */
 export function SaveDialog({
   api = getApi(), attachment = {}, connection, canTag = false, defaultTags = [], organizationId = null,
@@ -35,8 +35,9 @@ export function SaveDialog({
   const [values, setValues] = useState({});
   const [missingProperties, setMissingProperties] = useState([]);
   const [users, setUsers] = useState([]);
-  const [editing, setEditing] = useState(null);
-  const [adding, setAdding] = useState(false);
+  // The properties shown as rows, in Papra's order; the defaults to start with.
+  const [shown, setShown] = useState(() => new Set());
+  const [fromDefaults, setFromDefaults] = useState({});
   const [tab, setTab] = useState('where');
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -68,13 +69,13 @@ export function SaveDialog({
     if (!selected || !canSetProperties) return undefined;
     let cancelled = false;
     setDefinitions(null);
-    setEditing(null);
-    setAdding(false);
     client.propertyDefinitions(selected).then((defs) => {
       if (cancelled) return;
       const applied = applyDefaults(defaultProperties, defs, meUser);
       setDefinitions(defs);
       setValues(applied.values);
+      setFromDefaults(applied.values);
+      setShown(new Set(Object.keys(applied.values)));
       setMissingProperties(applied.missing);
     }, (err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
@@ -107,17 +108,30 @@ export function SaveDialog({
   const shownTags = allTags ? byUse : byUse.filter((tag, i) => i < TOP_TAGS || picked.has(tag.id));
   const hiddenTags = byUse.length - shownTags.length;
 
-  const setDefs = (definitions || []).filter((d) => isSet(d, values[d.id]));
-  const unsetDefs = (definitions || []).filter((d) => !isSet(d, values[d.id]) && d.id !== editing);
+  const rows = (definitions || []).filter((d) => shown.has(d.id));
+  const setDefs = rows.filter((d) => isSet(d, values[d.id]));
+  const addable = (definitions || []).filter((d) => !shown.has(d.id));
   const setValue = (id, value) => setValues((prev) => ({ ...prev, [id]: value }));
-  const clearValue = (id) => setValues((prev) => { const next = { ...prev }; delete next[id]; return next; });
+  const addRow = (id) => {
+    const def = definitions.find((d) => d.id === id);
+    if (!def) return;
+    setShown((prev) => new Set([...prev, id]));
+    // A yes/no starts at yes: adding it means setting it.
+    if (def.type === 'boolean') setValue(id, true);
+  };
+  const removeRow = (id) => {
+    setShown((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    setValues((prev) => { const next = { ...prev }; delete next[id]; return next; });
+  };
+  const locale = api.i18n.locale;
+  const isDefault = (d) => d.id in fromDefaults && JSON.stringify(fromDefaults[d.id]) === JSON.stringify(values[d.id]);
   const tagIds = canTag ? [...defaultIds, ...[...picked].filter((id) => !defaultIds.has(id))] : [];
   const tagName = (id) => tags?.find((tag) => tag.id === id)?.name || '';
 
   const review = organization ? [
     organization.name,
     tagIds.length ? t('done.tags', { tags: tagIds.map(tagName).join(', ') }) : '',
-    ...setDefs.map((d) => `${d.name}: ${describe(d, values[d.id], t)}`),
+    ...setDefs.map((d) => `${d.name}: ${describe(d, values[d.id], t, locale)}`),
   ].filter(Boolean).join(' · ') : '';
 
   const submit = () => {
@@ -129,7 +143,7 @@ export function SaveDialog({
       tagNames: tagIds.map(tagName),
       missingDefaults: canTag ? defaults.missing : [],
       properties: canSetProperties
-        ? setDefs.map((d) => ({ id: d.id, name: d.name, value: apiValue(d, values[d.id]), text: describe(d, values[d.id], t) })).filter((p) => p.value !== undefined)
+        ? setDefs.map((d) => ({ id: d.id, name: d.name, value: apiValue(d, values[d.id]), text: describe(d, values[d.id], t, locale) })).filter((p) => p.value !== undefined)
         : [],
       missingProperties: canSetProperties ? missingProperties : [],
     });
@@ -150,6 +164,7 @@ export function SaveDialog({
         </Field>
       )}
       {organization && !canTag && <Alert tone="info" icon="info-circle">{t('save.cannot_tag')}</Alert>}
+      {organization && !canSetProperties && <Alert tone="info" icon="info-circle">{t('save.cannot_set_properties')}</Alert>}
       {organization && canTag && !tags && !error && <Spinner size="sm" label={t('common.loading')} />}
       {organization && canTag && tags && (
         <div role="group" aria-label={t('field.tags')}>
@@ -173,45 +188,33 @@ export function SaveDialog({
     </Stack>
   );
 
-  const editingDef = definitions?.find((d) => d.id === editing);
   const propsTab = (
     <Stack gap={3}>
       {!definitions && !error && <Spinner size="sm" label={t('common.loading')} />}
       {definitions && definitions.length === 0 && <Text tone="muted">{t('save.no_properties', { organization: organization?.name || '' })}</Text>}
-      {setDefs.length > 0 && (
-        <div role="group" aria-label={t('save.properties')}>
-          <Row gap={2}>
-            {setDefs.map((d) => (
-              <Chip key={d.id} label={`${d.name}: ${describe(d, values[d.id], t)}`} title={t('save.edit_property', { name: d.name })}
-                onClick={() => { setEditing(d.id); setAdding(false); }} />
-            ))}
-          </Row>
-        </div>
-      )}
-      {editingDef && (
-        <div role="group" aria-label={t('save.edit_property', { name: editingDef.name })}>
-          <Stack gap={2}>
-            <PropertyEditor def={editingDef} value={values[editingDef.id]} onChange={(v) => setValue(editingDef.id, v)}
-              users={users} client={client} organizationId={selected} t={t} />
+      {rows.map((d) => (
+        <div key={d.id} role="group" aria-label={d.name}>
+          <Stack gap={1}>
+            <Field label={d.name}>
+              <PropertyEditor bare def={d} value={values[d.id]} onChange={(v) => setValue(d.id, v)}
+                users={users} client={client} organizationId={selected} t={t} locale={locale} />
+            </Field>
             <Row gap={3}>
-              <LinkButton onClick={() => { clearValue(editingDef.id); setEditing(null); }}>{t('save.remove_property')}</LinkButton>
-              <LinkButton onClick={() => setEditing(null)}>{t('save.done_property')}</LinkButton>
+              {isDefault(d) && <Text tone="muted">{t('save.from_default')}</Text>}
+              <LinkButton aria-label={t('save.remove_property', { name: d.name })} onClick={() => removeRow(d.id)}>{t('save.remove')}</LinkButton>
             </Row>
           </Stack>
         </div>
-      )}
-      {definitions && unsetDefs.length > 0 && !adding && (
-        <div><LinkButton icon="plus" onClick={() => { setAdding(true); setEditing(null); }}>{t('save.add_property')}</LinkButton></div>
-      )}
-      {adding && (
+      ))}
+      {definitions && addable.length > 0 && (
         <div role="group" aria-label={t('save.add_property')}>
-          <Stack gap={1}>
-            {unsetDefs.map((d) => (
-              <Row key={d.id} gap={2}>
-                <LinkButton onClick={() => { setAdding(false); setEditing(d.id); if (d.type === 'boolean') setValue(d.id, true); }}>{d.name}</LinkButton>
-                <Text tone="muted">{t(`prop.type_${d.type}`)}</Text>
-              </Row>
-            ))}
+          <Stack gap={2}>
+            <Text>{t('save.add_property')}</Text>
+            <Row gap={2}>
+              {addable.map((d) => (
+                <Chip key={d.id} label={`+ ${d.name}`} title={t(`prop.type_${d.type}`)} onClick={() => addRow(d.id)} />
+              ))}
+            </Row>
           </Stack>
         </div>
       )}

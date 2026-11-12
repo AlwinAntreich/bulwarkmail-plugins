@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Checkbox, Field, Input, LinkButton, Row, Select, Stack, Text } from '@plugin-host/ui';
+import { Alert, Checkbox, Field, Input, LinkButton, Row, Stack, Text } from '@plugin-host/ui';
 import { errorText } from '../lib/errors.js';
 
 /** How long after the last change the defaults are saved. */
 export const SAVE_DELAY_MS = 800;
 import { DEFAULT_TYPES, ME } from '../lib/properties.js';
-import { readPrefs, updatePrefs } from '../lib/prefs.js';
-import { TogglePills } from './PropertyEditor.jsx';
+import { readPrefs, stillOffered, updatePrefs } from '../lib/prefs.js';
+import { ChoicePills, TogglePills } from './PropertyEditor.jsx';
+import { DateField } from './DateField.jsx';
 
 /**
  * Property definitions of all the user's organisations, merged by name:
@@ -32,15 +33,15 @@ export function mergeDefinitions(lists) {
  * user only as "me". Typing waits for a pause (or leaving the field) before
  * saving; a choice saves at once (`onChange(value, true)`).
  */
-function DefaultValue({ def, value, onChange, onDone, t }) {
+function DefaultValue({ def, value, onChange, onDone, t, locale }) {
   const label = t('settings.default_value', { name: def.name });
   const now = (v) => onChange(v, true);
   switch (def.type) {
     case 'number': return <Input type="number" step="any" aria-label={label} value={value ?? ''} onChange={(e) => onChange(e.target.value)} onBlur={onDone} />;
-    case 'date': return <Input type="date" aria-label={label} value={value ?? ''} onChange={(e) => now(e.target.value)} />;
+    case 'date': return <DateField label={label} value={value ?? ''} onChange={now} t={t} locale={locale} />;
     case 'boolean': return <Checkbox checked={value === true} onChange={(c) => now(!!c)} label={t('prop.yes')} />;
     case 'select':
-      return <Select block aria-label={label} value={value ?? ''} onChange={now} options={[{ value: '', label: t('prop.not_set') }, ...def.options.map((n) => ({ value: n, label: n }))]} />;
+      return <ChoicePills items={def.options.map((n) => ({ id: n, name: n }))} value={value || undefined} onChange={(v) => now(v ?? '')} label={label} />;
     case 'multi_select':
       return <TogglePills items={def.options.map((n) => ({ id: n, name: n }))} value={Array.isArray(value) ? value : []} onChange={now} label={label} />;
     case 'user_relation': return <Text>{t('settings.default_me')}</Text>;
@@ -60,12 +61,18 @@ export function DefaultProperties({ api, client, organizations, t }) {
   const [lists, setLists] = useState(null);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
+  const [removed, setRemoved] = useState([]);
+  const [complete, setComplete] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     readPrefs(api).then(({ prefs }) => { if (!cancelled) setDefaults(prefs.defaultProperties); }, () => { if (!cancelled) setDefaults([]); });
-    Promise.all(organizations.map((o) => client.propertyDefinitions(o.id).catch(() => [])))
-      .then((all) => { if (!cancelled) setLists(all); });
+    Promise.allSettled(organizations.map((o) => client.propertyDefinitions(o.id)))
+      .then((all) => {
+        if (cancelled) return;
+        setLists(all.map((r) => (r.status === 'fulfilled' ? r.value : [])));
+        setComplete(all.every((r) => r.status === 'fulfilled'));
+      });
     return () => { cancelled = true; };
   }, [api, client, organizations]);
 
@@ -89,12 +96,23 @@ export function DefaultProperties({ api, client, organizations, t }) {
     clearTimeout(timer.current);
     if (now) flush(); else timer.current = setTimeout(flush, SAVE_DELAY_MS);
   };
+  // Defaults for properties no organisation has any more (deleted in Papra)
+  // go, once every organisation answered.
+  useEffect(() => {
+    if (!defaults || !lists || !complete) return;
+    const result = stillOffered(defaults, lists.flat().map((d) => d.name));
+    if (!result.removed.length) return;
+    setRemoved(result.removed);
+    store(result.keep, { now: true });
+  }, [defaults, lists, complete]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!defaults || !lists) return null;
   const defOf = (name) => definitions.find((d) => d.name.toLowerCase() === name.toLowerCase());
   const unused = definitions.filter((d) => !defaults.some((x) => x.name.toLowerCase() === d.name.toLowerCase()));
 
   return (
     <Stack gap={3}>
+      {removed.length > 0 && <Text tone="muted">{t('settings.defaults_removed', { properties: removed.join(', ') })}</Text>}
       {defaults.length === 0 && <Text tone="muted">{t('settings.no_default_properties')}</Text>}
       {defaults.map((entry, i) => {
         const def = defOf(entry.name);
@@ -102,7 +120,7 @@ export function DefaultProperties({ api, client, organizations, t }) {
           <div key={entry.name} role="group" aria-label={entry.name}>
             <Field label={entry.name} hint={def ? undefined : t('settings.property_gone', { name: entry.name })}>
               <Stack gap={1}>
-                {def && <DefaultValue def={def} value={entry.value} t={t} onDone={flush}
+                {def && <DefaultValue def={def} value={entry.value} t={t} locale={api.i18n.locale} onDone={flush}
                   onChange={(value, now) => store(defaults.map((x, j) => (j === i ? { ...x, value } : x)), { now })} />}
                 <div><LinkButton onClick={() => store(defaults.filter((_, j) => j !== i), { now: true })}>{t('settings.remove_default', { name: entry.name })}</LinkButton></div>
               </Stack>

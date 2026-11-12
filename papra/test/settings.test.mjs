@@ -77,13 +77,21 @@ describe('Settings', () => {
     await act(async () => { fireEvent.change(screen.getByLabelText('Default for Owner'), { target: { value: 'Alwin Antreich' } }); });
     await press(screen.getByRole('button', { name: 'Add a default property' }));
     await press(screen.getByRole('button', { name: 'Category' }));
-    const category = screen.getByLabelText('Default for Category');
-    expect([...category.options].map((o) => o.textContent)).toEqual(['Not set', 'Private', 'Business']);
-    await act(async () => { fireEvent.change(category, { target: { value: 'Private' } }); });
+    const category = screen.getByRole('group', { name: 'Default for Category' });
+    expect([...category.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Private', 'Business']);
+    await press(screen.getByRole('button', { name: 'Private' }));
     // Saved a moment after the last change, not per keystroke.
     await waitFor(async () => expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Category', value: 'Private' }]), { timeout: 2000 });
     await press(screen.getByRole('button', { name: 'Remove Owner' }));
     expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Category', value: 'Private' }]);
+  });
+
+  it('removes default properties no organisation has any more, and says so', async () => {
+    const api = makeApi({ permissions: [...FULL, 'custom-properties:read'] });
+    await api.storage.set(DEFAULT_PROPERTIES_KEY, [{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Project', value: 'X' }]);
+    await show(api);
+    await screen.findByText('Removed from your defaults, no organisation has them any more: Project');
+    expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }]);
   });
 
   it('says when the key can\'t set properties, and offers no defaults', async () => {

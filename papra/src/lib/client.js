@@ -58,6 +58,11 @@ export function documentOf(d) {
   };
 }
 
+/** A document's page in Papra's web app (the client's route /organizations/:org/documents/:doc). */
+export function documentUrl(base, organizationId, documentId) {
+  return `${base}/organizations/${encodeURIComponent(organizationId)}/documents/${encodeURIComponent(documentId)}`;
+}
+
 /** The file name in a Content-Disposition header, preferring RFC 5987 filename*. */
 export function filenameFromDisposition(header) {
   if (typeof header !== 'string') return '';

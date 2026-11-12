@@ -127,6 +127,13 @@ test.describe('papra plugin', () => {
       await expect(toast(page, `Saved ${pdfName} to Alice in Papra (tags: Bulwark, Invoice).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
+      // "Open in Papra" opens the new document's page in Papra.
+      const popup = page.waitForEvent('popup');
+      await page.getByRole('button', { name: 'Open in Papra' }).first().click();
+      const tab = await popup;
+      if (tab.url() === 'about:blank') await tab.waitForURL(/^http/).catch(() => {});
+      expect(tab.url()).toBe(`${PAPRA}/organizations/${SECRETS.organizations.Alice}/documents/${doc.id}`);
+      await tab.close();
       expect(doc.tags.map((t) => t.name).sort()).toEqual(['Bulwark', 'Invoice']);
 
       // The same file again: Papra already has it.
@@ -275,7 +282,7 @@ test.describe('papra plugin', () => {
       await settings.getByLabel('Default for Owner').fill('Alwin Antreich');
       await settings.getByRole('button', { name: 'Add a default property' }).click();
       await settings.getByRole('button', { name: 'Category', exact: true }).click();
-      await settings.getByLabel('Default for Category').selectOption('Private');
+      await settings.getByRole('group', { name: 'Default for Category' }).getByRole('button', { name: 'Private' }).click();
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await waitForPlugin(page, PLUGIN);
@@ -284,20 +291,23 @@ test.describe('papra plugin', () => {
       const dialog = page.frameLocator(SLOT).last();
       await dialog.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await dialog.getByRole('tab', { name: /^Properties/ }).click();
-      await expect(dialog.getByRole('button', { name: 'Category: Private' })).toBeVisible();
+      // The defaults are rows, changed in place.
+      await expect(dialog.getByRole('button', { name: '✓ Private' })).toBeVisible();
       // The document belongs to someone else: change the owner for this save.
-      await dialog.getByRole('button', { name: 'Owner: Alwin Antreich' }).click();
-      await dialog.getByLabel('Owner', { exact: true }).fill('Agata');
-      await dialog.getByRole('button', { name: 'Done' }).click();
-      await dialog.getByRole('button', { name: 'Add property' }).click();
-      await dialog.getByRole('button', { name: 'Paid', exact: true }).click();
-      await dialog.getByRole('button', { name: 'Done' }).click();
+      await dialog.getByRole('textbox', { name: 'Owner' }).fill('Agata');
+      await dialog.getByRole('button', { name: '+ Paid' }).click();
+      // A date from day, month and year lists: a date field's picker doesn't open in the plugin's frame.
+      await dialog.getByRole('button', { name: '+ Due' }).click();
+      await dialog.getByLabel('Due: day').selectOption('1');
+      await dialog.getByLabel('Due: month').selectOption('12');
+      await dialog.getByLabel('Due: year').selectOption('2026');
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Due: Dec 1, 2026; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
       const values = Object.fromEntries(doc.customProperties.filter((p) => p.value !== null && p.value !== undefined).map((p) => [p.name, p.value?.name ?? p.value]));
       expect(values).toMatchObject({ Owner: 'Agata', Category: 'Private', Paid: true });
+      expect(values.Due).toMatch(/^2026-12-01/);
     } finally {
       for (const doc of await findDocs('Alice', run).catch(() => [])) await deleteDoc('Alice', doc.id).catch(() => {});
       const settings = await settingsPage().catch(() => null);

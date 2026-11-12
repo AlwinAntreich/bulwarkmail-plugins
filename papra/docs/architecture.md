@@ -140,6 +140,13 @@ attachment menu ── onAction (background.js)
   └─► one toast: saved / saved without some tags / tagging failed / already in Papra
 ```
 
+- **The result links the document.** After a save the message is a
+  notification (`api.notifications.show`, `ui:notifications`) with the
+  action **Open in Papra** → `<server>/organizations/:org/documents/:doc`,
+  the document's page in Papra's web app (its client route). Bulwark shows
+  it as a system notification when the user allowed them, else in the app,
+  and lists it in the notification panel. Without the permission, or when
+  the host refuses the notification, a plain toast.
 - **One toast per action.** Bulwark drops a plugin's toasts past 5 in 10
   seconds, the result included. So a save reports in a single toast (a
   warning when tags are missing), and the spinner toast only shows from
@@ -180,14 +187,29 @@ the controls, `DefaultProperties.jsx` the defaults in Settings.
   organisation lacks goes into `missingProperties`, shown in the dialog
   and the toast. A linked document can't be a default; a Papra user
   default is "me".
+- **Dates** are chosen from day, month and year lists (`DateField.jsx`),
+  with Today and Clear. A native date field doesn't work in the plugin's
+  sandboxed frame: Chrome refuses to open its picker from a cross-origin
+  frame (`showPicker()`), and users found the field couldn't be changed in
+  Chrome or Firefox.
+- **Defaults of deleted properties go.** Settings, once every organisation
+  answered, removes defaults whose property no organisation has any more
+  (`stillOffered`) and says so; when one organisation can't be asked,
+  nothing is removed. A save that left a default out checks the same
+  (`pruneDefaults`) and names what it removed in its message.
 - **Me:** Papra doesn't tell an API key whose it is, and doesn't let it list
   members. The creator of the user's first upload (`createdBy`) is kept as
   `papraUser`; other users come from Papra user values on the latest 100
   documents (`usersIn`).
 - **The dialog:** with `canSetProperties` two tabs, "Where and tags" and
-  "Properties (n)". Properties shows only what will be set, as chips; a
-  click opens the editor for that type, Remove clears it, "Add property"
-  lists the unset ones. A review line under both tabs. Tags are pills: the
+  "Properties (n)". Properties is a row per property to set: its name
+  (`Field` label) and its field (`PropertyEditor` with `bare`), edited in
+  place, "Your default" while the value is the default, Remove to take it
+  off. The defaults start as rows; under "Add property" the others are
+  pills ("+ name") that add a row with the field ready. A choice's options are
+  pills as well (`ChoicePills`, one picked at a time), in the dialog and for
+  defaults in Settings. A review line under both tabs, dates
+  formatted for the user's language (`describe`). Tags are pills: the
   admin's defaults fixed, the five most-used (`TOP_TAGS`), "+ n more".
 
 ## Preferences across devices

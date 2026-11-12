@@ -109,17 +109,24 @@ Private. The same page shows what your key may do and disconnects it. The
 default organisation and default properties are kept with your mail
 account, so every browser and device you sign in with uses them; this
 needs Stalwart 1.0 or later, and on an older mail server they stay in the
-browser you set them in. The page says which applies.
+browser you set them in. The page says which applies. A default property that no organisation has any more,
+because it was deleted in Papra, is removed from your defaults, and you are
+told.
 
 Open an attachment's menu in a message and choose **Save to Papra**. On
 **Where and tags**, pick the organisation and the tags: the admin's
 default tags are already on, the organisation's five most-used tags are
-pills to switch on, and "+ n more" shows the rest. On **Properties**, the
-properties that will be set show as "name: value", your defaults filled
-in: click one to change it for this document (the birth certificate you
-upload is Agata's, so she is the owner) or remove it, and **Add property**
-offers the organisation's other properties, each with a field for its type.
-A line under both tabs says what Papra will get. The plugin creates no
+pills to switch on, and "+ n more" shows the rest. On **Properties**, each
+property that will be set is a row with its name and its field, your
+defaults already filled in: change a value right there for this document
+(the birth certificate you upload is Agata's, so she is the owner), or
+**Remove** it. Under **Add property**, the organisation's other properties
+are pills; a click adds a row with a field for its type. Choices are pills
+too: click one to pick it, click it again to unpick it. A date is chosen from day, month
+and year lists (or Today): a browser's own date picker doesn't open inside
+Bulwark's plugin frame. A line under both tabs says what Papra will get,
+dates in your language. After saving, the message has an **Open in Papra**
+button that opens the new document in Papra, to change it there. The plugin creates no
 tags, properties or options: a default the organisation doesn't have is
 left out, and the message after saving says so. For a Papra user property,
 Papra shows the plugin only you (after your first save from Bulwark) and
@@ -152,4 +159,5 @@ way.
 | `email:blob-write` | add the documents you pick to the message |
 | `ui:observe` | the dialogs where you choose the organisation, tags and documents |
 | `ui:settings-section` | the Papra page in Settings: connection and default organisation |
+| `ui:notifications` | the message after saving, with **Open in Papra** for the new document; it is a notification on your device when you allowed Bulwark's notifications, otherwise one in the app |
 | `email:write` | keep your default organisation and default properties with your mail account (a small value in your Inbox's settings), so they follow you to other devices; the plugin changes no messages |
