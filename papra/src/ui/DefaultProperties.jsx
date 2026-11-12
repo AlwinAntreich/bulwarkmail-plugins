@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Checkbox, Field, Input, LinkButton, Row, Select, Stack, Text } from '@plugin-host/ui';
+import { Alert, Checkbox, Field, Input, LinkButton, Row, Stack, Text } from '@plugin-host/ui';
 import { errorText } from '../lib/errors.js';
 
 /** How long after the last change the defaults are saved. */
 export const SAVE_DELAY_MS = 800;
 import { DEFAULT_TYPES, ME } from '../lib/properties.js';
 import { readPrefs, stillOffered, updatePrefs } from '../lib/prefs.js';
-import { TogglePills } from './PropertyEditor.jsx';
+import { ChoicePills, TogglePills } from './PropertyEditor.jsx';
 import { DateField } from './DateField.jsx';
 
 /**
@@ -41,7 +41,7 @@ function DefaultValue({ def, value, onChange, onDone, t, locale }) {
     case 'date': return <DateField label={label} value={value ?? ''} onChange={now} t={t} locale={locale} />;
     case 'boolean': return <Checkbox checked={value === true} onChange={(c) => now(!!c)} label={t('prop.yes')} />;
     case 'select':
-      return <Select block aria-label={label} value={value ?? ''} onChange={now} options={[{ value: '', label: t('prop.not_set') }, ...def.options.map((n) => ({ value: n, label: n }))]} />;
+      return <ChoicePills items={def.options.map((n) => ({ id: n, name: n }))} value={value || undefined} onChange={(v) => now(v ?? '')} label={label} />;
     case 'multi_select':
       return <TogglePills items={def.options.map((n) => ({ id: n, name: n }))} value={Array.isArray(value) ? value : []} onChange={now} label={label} />;
     case 'user_relation': return <Text>{t('settings.default_me')}</Text>;

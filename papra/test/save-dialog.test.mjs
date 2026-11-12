@@ -136,7 +136,8 @@ describe('SaveDialog: properties', () => {
     expect(screen.getByRole('tab', { name: 'Properties 2' })).toBeTruthy();
     await tab('Properties');
     expect(screen.getByRole('textbox', { name: 'Owner' }).value).toBe('Alwin Antreich');
-    expect(screen.getByRole('combobox', { name: 'Category' }).value).toBe('p2_o0');
+    // A choice is pills, the default picked.
+    expect([...screen.getAllByRole('group', { name: 'Category' }).at(-1).querySelectorAll('button')].map((b) => b.textContent)).toEqual(['✓ Private', 'Business']);
     expect(screen.getAllByText('Your default')).toHaveLength(2);
     expect(screen.getByText('Default properties left out, Alice doesn’t have them: Project')).toBeTruthy();
     expect(screen.getByText('Alice · tags: Bulwark · Category: Private · Owner: Alwin Antreich')).toBeTruthy();
@@ -150,13 +151,26 @@ describe('SaveDialog: properties', () => {
     });
   });
 
+  it('picks a choice from its pills, and unpicks it with a second click', async () => {
+    const { onResult } = await withProps();
+    await tab('Properties');
+    await press(screen.getByRole('button', { name: 'Business' }));
+    expect(screen.getByRole('button', { name: '✓ Business' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Private' })).toBeTruthy();
+    await press(save());
+    expect(result(onResult).properties).toContainEqual({ id: 'p2', name: 'Category', value: 'p2_o1', text: 'Business' });
+    await press(screen.getByRole('button', { name: '✓ Business' }));
+    await press(save());
+    expect(result(onResult).properties.map((p) => p.name)).toEqual(['Owner']);
+  });
+
   it('changes a default for this save in its row, and takes one off with ×', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
     await act(async () => { fireEvent.change(screen.getByRole('textbox', { name: 'Owner' }), { target: { value: 'Agata' } }); });
     expect(screen.getAllByText('Your default')).toHaveLength(1);
     await press(screen.getByRole('button', { name: 'Take Category off this document' }));
-    expect(screen.queryByRole('combobox', { name: 'Category' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '✓ Private' })).toBeNull();
     await press(save());
     expect(result(onResult).properties).toEqual([{ id: 'p1', name: 'Owner', value: 'Agata', text: 'Agata' }]);
   });

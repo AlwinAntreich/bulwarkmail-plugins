@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Checkbox, Chip, Field, Input, LinkButton, Row, Select, Stack, Text } from '@plugin-host/ui';
+import { Checkbox, Chip, Field, Input, LinkButton, Row, Stack, Text } from '@plugin-host/ui';
 import { DateField } from './DateField.jsx';
+
+/** One pill of several on at a time, for a choice: a click picks it, a click on the picked one unpicks it. */
+export function ChoicePills({ items, value, onChange, label }) {
+  return (
+    <div role="group" aria-label={label}>
+      <Row gap={2}>
+        {items.map((item) => (
+          <Chip key={item.id} label={item.id === value ? `✓ ${item.name}` : item.name}
+            onClick={() => onChange(item.id === value ? undefined : item.id)} />
+        ))}
+      </Row>
+    </div>
+  );
+}
 
 /** Pills to switch on and off: `items` [{ id, name }], `value` the ids (or objects with ids) switched on. */
 export function TogglePills({ items, value = [], onChange, label, idOf = (x) => x }) {
@@ -67,10 +81,7 @@ export function PropertyEditor({ def, value, onChange, users = [], client, organ
     case 'boolean':
       return <Checkbox checked={value === true} onChange={(checked) => onChange(!!checked)} label={bare ? t('prop.yes') : label} />;
     case 'select':
-      return labelled(
-        <Select block aria-label={bare ? label : undefined} value={value ?? ''} onChange={(v) => onChange(v || undefined)}
-          options={[{ value: '', label: t('prop.not_set') }, ...def.options.map((o) => ({ value: o.id, label: o.name }))]} />,
-      );
+      return titled(<ChoicePills items={def.options} value={value} onChange={onChange} label={label} />);
     case 'multi_select':
       return titled(<TogglePills items={def.options} value={value ?? []} onChange={onChange} label={label} />);
     case 'user_relation':

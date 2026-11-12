@@ -77,9 +77,9 @@ describe('Settings', () => {
     await act(async () => { fireEvent.change(screen.getByLabelText('Default for Owner'), { target: { value: 'Alwin Antreich' } }); });
     await press(screen.getByRole('button', { name: 'Add a default property' }));
     await press(screen.getByRole('button', { name: 'Category' }));
-    const category = screen.getByLabelText('Default for Category');
-    expect([...category.options].map((o) => o.textContent)).toEqual(['Not set', 'Private', 'Business']);
-    await act(async () => { fireEvent.change(category, { target: { value: 'Private' } }); });
+    const category = screen.getByRole('group', { name: 'Default for Category' });
+    expect([...category.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Private', 'Business']);
+    await press(screen.getByRole('button', { name: 'Private' }));
     // Saved a moment after the last change, not per keystroke.
     await waitFor(async () => expect(await api.storage.get(DEFAULT_PROPERTIES_KEY)).toEqual([{ name: 'Owner', value: 'Alwin Antreich' }, { name: 'Category', value: 'Private' }]), { timeout: 2000 });
     await press(screen.getByRole('button', { name: 'Remove Owner' }));

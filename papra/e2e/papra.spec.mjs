@@ -282,7 +282,7 @@ test.describe('papra plugin', () => {
       await settings.getByLabel('Default for Owner').fill('Alwin Antreich');
       await settings.getByRole('button', { name: 'Add a default property' }).click();
       await settings.getByRole('button', { name: 'Category', exact: true }).click();
-      await settings.getByLabel('Default for Category').selectOption('Private');
+      await settings.getByRole('group', { name: 'Default for Category' }).getByRole('button', { name: 'Private' }).click();
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await waitForPlugin(page, PLUGIN);
@@ -292,7 +292,7 @@ test.describe('papra plugin', () => {
       await dialog.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await dialog.getByRole('tab', { name: /^Properties/ }).click();
       // The defaults are rows, changed in place.
-      await expect(dialog.getByRole('combobox', { name: 'Category' })).toHaveValue(/.+/);
+      await expect(dialog.getByRole('button', { name: '✓ Private' })).toBeVisible();
       // The document belongs to someone else: change the owner for this save.
       await dialog.getByRole('textbox', { name: 'Owner' }).fill('Agata');
       await dialog.getByRole('button', { name: '+ Paid' }).click();
