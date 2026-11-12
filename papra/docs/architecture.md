@@ -205,8 +205,8 @@ the controls, `DefaultProperties.jsx` the defaults in Settings.
   "Properties (n)". Properties is a row per property to set: its name
   (`Field` label) and its field (`PropertyEditor` with `bare`), edited in
   place, "Your default" while the value is the default, Remove to take it
-  off. The defaults start as rows; "Add property" is a list of the others
-  and adds a row with the field ready. A review line under both tabs, dates
+  off. The defaults start as rows; under "Add property" the others are
+  pills ("+ name") that add a row with the field ready. A review line under both tabs, dates
   formatted for the user's language (`describe`). Tags are pills: the
   admin's defaults fixed, the five most-used (`TOP_TAGS`), "+ n more".
 

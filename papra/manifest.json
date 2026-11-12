@@ -202,7 +202,6 @@
       "done.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
       "settings.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
       "settings.property_gone": "None of the organisations Papra answered for has {name} now; it is left out until one does.",
-      "save.add_choose": "Choose a property…",
       "save.from_default": "Your default",
       "save.remove": "Remove"
     },
@@ -356,7 +355,6 @@
       "done.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
       "settings.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
       "settings.property_gone": "Keine der Organisationen, für die Papra geantwortet hat, hat {name} gerade; es wird ausgelassen, bis eine es hat.",
-      "save.add_choose": "Eigenschaft wählen …",
       "save.from_default": "Ihr Standardwert",
       "save.remove": "Entfernen"
     }

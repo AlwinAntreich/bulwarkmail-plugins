@@ -295,9 +295,9 @@ test.describe('papra plugin', () => {
       await expect(dialog.getByRole('combobox', { name: 'Category' })).toHaveValue(/.+/);
       // The document belongs to someone else: change the owner for this save.
       await dialog.getByRole('textbox', { name: 'Owner' }).fill('Agata');
-      await dialog.getByLabel('Add property').selectOption({ label: 'Paid (yes/no)' });
+      await dialog.getByRole('button', { name: '+ Paid' }).click();
       // A date from day, month and year lists: a date field's picker doesn't open in the plugin's frame.
-      await dialog.getByLabel('Add property').selectOption({ label: 'Due (date)' });
+      await dialog.getByRole('button', { name: '+ Due' }).click();
       await dialog.getByLabel('Due: day').selectOption('1');
       await dialog.getByLabel('Due: month').selectOption('12');
       await dialog.getByLabel('Due: year').selectOption('2026');

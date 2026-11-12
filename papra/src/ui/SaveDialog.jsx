@@ -207,10 +207,16 @@ export function SaveDialog({
         </div>
       ))}
       {definitions && addable.length > 0 && (
-        <Field label={t('save.add_property')}>
-          <Select block value="" onChange={(id) => { if (id) addRow(id); }}
-            options={[{ value: '', label: t('save.add_choose') }, ...addable.map((d) => ({ value: d.id, label: `${d.name} (${t(`prop.type_${d.type}`)})` }))]} />
-        </Field>
+        <div role="group" aria-label={t('save.add_property')}>
+          <Stack gap={2}>
+            <Text>{t('save.add_property')}</Text>
+            <Row gap={2}>
+              {addable.map((d) => (
+                <Chip key={d.id} label={`+ ${d.name}`} title={t(`prop.type_${d.type}`)} onClick={() => addRow(d.id)} />
+              ))}
+            </Row>
+          </Stack>
+        </div>
       )}
       {missingProperties.length > 0 && organization && (
         <Text tone="muted">{t('save.missing_properties', { properties: missingProperties.join(', '), organization: organization.name })}</Text>

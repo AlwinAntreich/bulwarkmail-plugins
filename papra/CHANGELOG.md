@@ -10,7 +10,7 @@
 - Default properties whose property was deleted in Papra, and that no organisation has any more, are removed from the defaults, and the user is told.
 
 ### Changed
-- Save to Papra's Properties tab shows each property as a row with its field, changed in place; Add property is a list that adds a row. Dates show in your language.
+- Save to Papra's Properties tab shows each property as a row with its field, changed in place; Add property shows the other properties as pills that add a row. Dates show in your language.
 - Save to Papra says when the API key can't set properties and what to do, instead of leaving them out without a word; Settings > Papra says how to connect a key that can.
 
 ## 0.1.3 (2026-11-10)

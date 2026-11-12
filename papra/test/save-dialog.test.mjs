@@ -129,7 +129,7 @@ describe('SaveDialog: properties', () => {
     ...extra,
   });
   const tab = async (name) => press(screen.getByRole('tab', { name: new RegExp(`^${name}`) }));
-  const add = async (id) => { await act(async () => { fireEvent.change(screen.getByLabelText('Add property'), { target: { value: id } }); }); };
+  const add = async (name) => press(screen.getByRole('button', { name: `+ ${name}` }));
 
   it('starts with the user\'s defaults as rows, edited in place, and names the ones the organisation lacks', async () => {
     const { onResult } = await withProps();
@@ -161,21 +161,22 @@ describe('SaveDialog: properties', () => {
     expect(result(onResult).properties).toEqual([{ id: 'p1', name: 'Owner', value: 'Agata', text: 'Agata' }]);
   });
 
-  it('adds a row from the list, with a field for its type ready', async () => {
+  it('adds a row from the property pills, with a field for its type ready', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
-    const list = screen.getByLabelText('Add property');
-    expect([...list.options].map((o) => o.textContent)).toEqual(['Choose a property…', 'Amount (number)', 'Due (date)', 'Paid (yes/no)', 'Related (linked document)', 'Responsible (Papra user)']);
-    await add('p3');
+    const pills = screen.getByRole('group', { name: 'Add property' });
+    expect([...pills.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['+ Amount', '+ Due', '+ Paid', '+ Related', '+ Responsible']);
+    await add('Amount');
     await act(async () => { fireEvent.change(screen.getByRole('spinbutton', { name: 'Amount' }), { target: { value: '129.90' } }); });
-    await add('p5');
+    await add('Responsible');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Karin' })).toBeTruthy());
     await press(screen.getByRole('button', { name: 'Me' }));
-    await add('p6');
+    await add('Related');
     await act(async () => { fireEvent.change(screen.getByLabelText('Find a document in Papra'), { target: { value: 'contract' } }); });
     await press(await screen.findByRole('button', { name: 'contract.pdf' }));
-    await add('p4');
+    await add('Paid');
     expect(screen.getByRole('checkbox', { name: 'yes' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('group', { name: 'Add property' }).textContent).toBe('Add property+ Due');
     await press(save());
     expect(result(onResult).properties).toEqual([
       { id: 'p3', name: 'Amount', value: 129.9, text: '129.90' },
@@ -190,7 +191,7 @@ describe('SaveDialog: properties', () => {
   it('takes a date from day, month and year lists, shown in the user\'s language', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
-    await add('p7');
+    await add('Due');
     for (const [list, value] of [['Due: day', '1'], ['Due: month', '12'], ['Due: year', '2026']]) {
       await act(async () => { fireEvent.change(screen.getByLabelText(list), { target: { value } }); });
     }

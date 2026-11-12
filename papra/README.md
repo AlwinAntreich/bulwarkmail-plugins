@@ -120,8 +120,8 @@ pills to switch on, and "+ n more" shows the rest. On **Properties**, each
 property that will be set is a row with its name and its field, your
 defaults already filled in: change a value right there for this document
 (the birth certificate you upload is Agata's, so she is the owner), or
-**Remove** it. **Add property** lists the organisation's other properties
-and adds a row with a field for its type. A date is chosen from day, month
+**Remove** it. Under **Add property**, the organisation's other properties
+are pills; a click adds a row with a field for its type. A date is chosen from day, month
 and year lists (or Today): a browser's own date picker doesn't open inside
 Bulwark's plugin frame. A line under both tabs says what Papra will get,
 dates in your language. After saving, the message has an **Open in Papra**
