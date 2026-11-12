@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.4 (2026-11-12)
+
 ### Added
 - After saving, the message has Open in Papra, which opens the new document in Papra to change it there. The message is a notification, so the plugin asks for the permission ui:notifications.
 
