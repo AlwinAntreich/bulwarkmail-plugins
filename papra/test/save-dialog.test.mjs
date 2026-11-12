@@ -129,13 +129,15 @@ describe('SaveDialog: properties', () => {
     ...extra,
   });
   const tab = async (name) => press(screen.getByRole('tab', { name: new RegExp(`^${name}`) }));
+  const add = async (id) => { await act(async () => { fireEvent.change(screen.getByLabelText('Add property'), { target: { value: id } }); }); };
 
-  it('fills in the user\'s defaults and names the ones the organisation lacks', async () => {
+  it('starts with the user\'s defaults as rows, edited in place, and names the ones the organisation lacks', async () => {
     const { onResult } = await withProps();
     expect(screen.getByRole('tab', { name: 'Properties 2' })).toBeTruthy();
     await tab('Properties');
-    expect(screen.getByRole('button', { name: 'Owner: Alwin Antreich' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Category: Private' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Owner' }).value).toBe('Alwin Antreich');
+    expect(screen.getByRole('combobox', { name: 'Category' }).value).toBe('p2_o0');
+    expect(screen.getAllByText('Your default')).toHaveLength(2);
     expect(screen.getByText('Default properties left out, Alice doesn’t have them: Project')).toBeTruthy();
     expect(screen.getByText('Alice · tags: Bulwark · Category: Private · Owner: Alwin Antreich')).toBeTruthy();
     await press(save());
@@ -148,59 +150,53 @@ describe('SaveDialog: properties', () => {
     });
   });
 
-  it('changes a default for this save: the owner is someone else', async () => {
+  it('changes a default for this save in its row, and takes one off with ×', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
-    await press(screen.getByRole('button', { name: 'Owner: Alwin Antreich' }));
-    await act(async () => { fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'Agata' } }); });
-    await press(screen.getByRole('button', { name: 'Done' }));
-    await press(screen.getByRole('button', { name: 'Category: Private' }));
-    await press(screen.getByRole('button', { name: 'Remove' }));
+    await act(async () => { fireEvent.change(screen.getByRole('textbox', { name: 'Owner' }), { target: { value: 'Agata' } }); });
+    expect(screen.getAllByText('Your default')).toHaveLength(1);
+    await press(screen.getByRole('button', { name: 'Take Category off this document' }));
+    expect(screen.queryByRole('combobox', { name: 'Category' })).toBeNull();
     await press(save());
     expect(result(onResult).properties).toEqual([{ id: 'p1', name: 'Owner', value: 'Agata', text: 'Agata' }]);
   });
 
-  it('adds a property on demand, each with a control for its type', async () => {
+  it('adds a row from the list, with a field for its type ready', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
-    await press(screen.getByRole('button', { name: 'Add property' }));
-    const list = screen.getByRole('group', { name: 'Add property' });
-    expect(list.textContent).toBe('AmountnumberDuedatePaidyes/noRelatedlinked documentResponsiblePapra user');
-    await press(screen.getByRole('button', { name: 'Amount' }));
-    await act(async () => { fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '129.90' } }); });
-    await press(screen.getByRole('button', { name: 'Done' }));
-    await press(screen.getByRole('button', { name: 'Add property' }));
-    await press(screen.getByRole('button', { name: 'Responsible' }));
+    const list = screen.getByLabelText('Add property');
+    expect([...list.options].map((o) => o.textContent)).toEqual(['Choose a property…', 'Amount (number)', 'Due (date)', 'Paid (yes/no)', 'Related (linked document)', 'Responsible (Papra user)']);
+    await add('p3');
+    await act(async () => { fireEvent.change(screen.getByRole('spinbutton', { name: 'Amount' }), { target: { value: '129.90' } }); });
+    await add('p5');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Karin' })).toBeTruthy());
     await press(screen.getByRole('button', { name: 'Me' }));
-    await press(screen.getByRole('button', { name: 'Done' }));
-    await press(screen.getByRole('button', { name: 'Add property' }));
-    await press(screen.getByRole('button', { name: 'Related' }));
+    await add('p6');
     await act(async () => { fireEvent.change(screen.getByLabelText('Find a document in Papra'), { target: { value: 'contract' } }); });
     await press(await screen.findByRole('button', { name: 'contract.pdf' }));
-    await press(screen.getByRole('button', { name: 'Done' }));
+    await add('p4');
+    expect(screen.getByRole('checkbox', { name: 'yes' }).getAttribute('aria-checked')).toBe('true');
     await press(save());
     expect(result(onResult).properties).toEqual([
       { id: 'p3', name: 'Amount', value: 129.9, text: '129.90' },
       { id: 'p2', name: 'Category', value: 'p2_o0', text: 'Private' },
       { id: 'p1', name: 'Owner', value: 'Alwin Antreich', text: 'Alwin Antreich' },
+      { id: 'p4', name: 'Paid', value: true, text: 'yes' },
       { id: 'p6', name: 'Related', value: ['d1'], text: 'contract.pdf' },
       { id: 'p5', name: 'Responsible', value: ['u_me'], text: 'Me' },
     ]);
   });
 
-  it('takes a date from day, month and year lists', async () => {
+  it('takes a date from day, month and year lists, shown in the user\'s language', async () => {
     const { onResult } = await withProps();
     await tab('Properties');
-    await press(screen.getByRole('button', { name: 'Add property' }));
-    await press(screen.getByRole('button', { name: 'Due' }));
+    await add('p7');
     for (const [list, value] of [['Due: day', '1'], ['Due: month', '12'], ['Due: year', '2026']]) {
       await act(async () => { fireEvent.change(screen.getByLabelText(list), { target: { value } }); });
     }
-    await press(screen.getByRole('button', { name: 'Done' }));
-    expect(screen.getByRole('button', { name: 'Due: 2026-12-01' })).toBeTruthy();
+    expect(screen.getByText(/· Due: Dec 1, 2026/)).toBeTruthy();
     await press(save());
-    expect(result(onResult).properties).toContainEqual({ id: 'p7', name: 'Due', value: '2026-12-01', text: '2026-12-01' });
+    expect(result(onResult).properties).toContainEqual({ id: 'p7', name: 'Due', value: '2026-12-01', text: 'Dec 1, 2026' });
   });
 
   it('starts over with the defaults when the user switches organisation', async () => {

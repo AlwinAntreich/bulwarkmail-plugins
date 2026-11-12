@@ -116,14 +116,16 @@ told.
 Open an attachment's menu in a message and choose **Save to Papra**. On
 **Where and tags**, pick the organisation and the tags: the admin's
 default tags are already on, the organisation's five most-used tags are
-pills to switch on, and "+ n more" shows the rest. On **Properties**, the
-properties that will be set show as "name: value", your defaults filled
-in: click one to change it for this document (the birth certificate you
-upload is Agata's, so she is the owner) or remove it, and **Add property**
-offers the organisation's other properties, each with a field for its type.
-A date is chosen from day, month and year lists (or Today): a browser's own date
-picker doesn't open inside Bulwark's plugin frame. A line under both tabs says what Papra will get. After saving, the message has an **Open in Papra** button that
-opens the new document in Papra, to change it there. The plugin creates no
+pills to switch on, and "+ n more" shows the rest. On **Properties**, each
+property that will be set is a row with its name and its field, your
+defaults already filled in: change a value right there for this document
+(the birth certificate you upload is Agata's, so she is the owner), or
+**Remove** it. **Add property** lists the organisation's other properties
+and adds a row with a field for its type. A date is chosen from day, month
+and year lists (or Today): a browser's own date picker doesn't open inside
+Bulwark's plugin frame. A line under both tabs says what Papra will get,
+dates in your language. After saving, the message has an **Open in Papra**
+button that opens the new document in Papra, to change it there. The plugin creates no
 tags, properties or options: a default the organisation doesn't have is
 left out, and the message after saving says so. For a Papra user property,
 Papra shows the plugin only you (after your first save from Bulwark) and

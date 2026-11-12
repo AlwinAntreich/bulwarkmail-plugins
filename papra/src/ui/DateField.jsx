@@ -29,7 +29,7 @@ export function join({ y, m, d }) {
  * `value` is 'YYYY-MM-DD' or ''; onChange gets the same, '' until all three
  * are chosen. `label` names the field.
  */
-export function DateField({ label, value, onChange, t, locale }) {
+export function DateField({ label, value, onChange, t, locale, bare = false }) {
   // A partly chosen date stays in the lists; the value is set once complete.
   const [chosen, setChosen] = useState(() => parts(value));
   useEffect(() => { if (value) setChosen(parts(value)); }, [value]);
@@ -41,8 +41,7 @@ export function DateField({ label, value, onChange, t, locale }) {
     label: new Intl.DateTimeFormat(locale || undefined, { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, i, 1))),
   }));
   const today = new Date();
-  return (
-    <Field label={label}>
+  const body = (
       <Stack gap={1}>
         <Row gap={2}>
           <Select aria-label={t('date.day', { name: label })} value={d ? String(d) : ''} onChange={(v) => set({ d: Number(v) })}
@@ -54,9 +53,10 @@ export function DateField({ label, value, onChange, t, locale }) {
         </Row>
         <Row gap={3}>
           <LinkButton onClick={() => update({ y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() })}>{t('date.today')}</LinkButton>
-          {(y || m || d) ? <LinkButton onClick={() => update({ y: 0, m: 0, d: 0 })}>{t('date.clear')}</LinkButton> : null}
+          {/* In the save window's rows, Remove next to the row does this. */}
+          {!bare && (y || m || d) ? <LinkButton onClick={() => update({ y: 0, m: 0, d: 0 })}>{t('date.clear')}</LinkButton> : null}
         </Row>
       </Stack>
-    </Field>
   );
+  return bare ? body : <Field label={label}>{body}</Field>;
 }

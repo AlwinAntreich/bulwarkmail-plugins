@@ -170,12 +170,9 @@
       "prop.type_document_relation": "linked document",
       "save.tab_where": "Where and tags",
       "save.tab_properties": "Properties",
-      "save.properties": "Properties to set",
       "save.more_tags": "+ {count} more",
       "save.no_properties": "{organization} has no properties.",
-      "save.edit_property": "Edit {name}",
-      "save.remove_property": "Remove",
-      "save.done_property": "Done",
+      "save.remove_property": "Take {name} off this document",
       "save.add_property": "Add property",
       "save.missing_properties": "Default properties left out, {organization} doesn’t have them: {properties}",
       "settings.cannot_set_properties": "This key can't set properties: documents are saved without them. Create a key with custom-properties:read and documents:update in Papra, then Disconnect here and connect the new key.",
@@ -204,7 +201,10 @@
       "date.clear": "Clear",
       "done.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
       "settings.defaults_removed": "Removed from your defaults, no organisation has them any more: {properties}",
-      "settings.property_gone": "None of the organisations Papra answered for has {name} now; it is left out until one does."
+      "settings.property_gone": "None of the organisations Papra answered for has {name} now; it is left out until one does.",
+      "save.add_choose": "Choose a property…",
+      "save.from_default": "Your default",
+      "save.remove": "Remove"
     },
     "de": {
       "action.save": "In Papra speichern",
@@ -324,12 +324,9 @@
       "prop.type_document_relation": "verknüpftes Dokument",
       "save.tab_where": "Ziel und Tags",
       "save.tab_properties": "Eigenschaften",
-      "save.properties": "Zu setzende Eigenschaften",
       "save.more_tags": "+ {count} weitere",
       "save.no_properties": "{organization} hat keine Eigenschaften.",
-      "save.edit_property": "{name} bearbeiten",
-      "save.remove_property": "Entfernen",
-      "save.done_property": "Fertig",
+      "save.remove_property": "{name} für dieses Dokument entfernen",
       "save.add_property": "Eigenschaft hinzufügen",
       "save.missing_properties": "Standard-Eigenschaften ausgelassen, {organization} hat sie nicht: {properties}",
       "settings.cannot_set_properties": "Dieser Schlüssel kann keine Eigenschaften setzen: Dokumente werden ohne sie gespeichert. Erstellen Sie in Papra einen Schlüssel mit custom-properties:read und documents:update, trennen Sie hier die Verbindung und verbinden Sie den neuen Schlüssel.",
@@ -358,7 +355,10 @@
       "date.clear": "Leeren",
       "done.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
       "settings.defaults_removed": "Aus Ihren Standardwerten entfernt, keine Organisation hat sie noch: {properties}",
-      "settings.property_gone": "Keine der Organisationen, für die Papra geantwortet hat, hat {name} gerade; es wird ausgelassen, bis eine es hat."
+      "settings.property_gone": "Keine der Organisationen, für die Papra geantwortet hat, hat {name} gerade; es wird ausgelassen, bis eine es hat.",
+      "save.add_choose": "Eigenschaft wählen …",
+      "save.from_default": "Ihr Standardwert",
+      "save.remove": "Entfernen"
     }
   }
 }

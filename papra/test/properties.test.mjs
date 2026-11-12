@@ -46,6 +46,8 @@ describe('values', () => {
     expect(describeValue(d('Paid'), false, t)).toBe('no');
     expect(describeValue(d('Responsible'), [{ id: 'u1', name: 'Me' }], t)).toBe('Me');
     expect(describeValue(d('Owner'), '', t)).toBe('');
+    expect(describeValue(d('Due'), '2026-12-01', t, 'en-US')).toBe('Dec 1, 2026');
+    expect(describeValue(d('Due'), '2026-12-01', t, 'de')).toBe('1. Dez. 2026');
   });
 });
 

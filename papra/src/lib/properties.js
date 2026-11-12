@@ -65,11 +65,19 @@ export function apiValue(def, value) {
   }
 }
 
-/** A dialog value in words, for chips, the review line and the toast. */
-export function describe(def, value, t) {
+/** A dialog value in words, for the review line and the message after saving; dates in the user's language. */
+export function describe(def, value, t, locale) {
   if (!isSet(def, value)) return '';
   const option = (id) => def.options.find((o) => o.id === id)?.name || '';
   switch (def.type) {
+    case 'date': {
+      const [y, m, d] = value.split('-').map(Number);
+      try {
+        return new Intl.DateTimeFormat(locale || undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
+      } catch {
+        return value;
+      }
+    }
     case 'boolean': return value ? t('prop.yes') : t('prop.no');
     case 'select': return option(value);
     case 'multi_select': return value.map(option).filter(Boolean).join(', ');
