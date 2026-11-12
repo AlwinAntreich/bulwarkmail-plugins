@@ -125,9 +125,6 @@ export function createBackground(api) {
    * budget. It names the tags the document got, so a skipped default tag
    * doesn't read as "saved without tags".
    */
-  /** Links of the notifications shown, by tag, for a click on a notification itself. */
-  const links = new Map();
-
   /**
    * One message per save, so a warning isn't dropped by the host's toast
    * budget, with a link to the new document in Papra to change it there.
@@ -158,18 +155,11 @@ export function createBackground(api) {
           tag,
           action: { label: t('done.open'), url },
         });
-        links.set(tag, url);
         return;
       } catch { /* no notification permission, the host refused the link, or too many: a toast */ }
     }
     if (notes.length) api.toast.warning(text);
     else api.toast.success(text);
-  }
-
-  /** A click on a save notification opens the document in Papra. */
-  async function onNotificationClick({ tag } = {}) {
-    const url = typeof tag === 'string' ? links.get(tag) : null;
-    if (url) await api.ui.openExternalUrl(url);
   }
 
   async function attachFlow(context) {
@@ -226,5 +216,5 @@ export function createBackground(api) {
       .catch((err) => api.log?.warn?.(`setting up ${surface} failed`, err?.message))));
   }
 
-  return { onAction, onNotificationClick, registerUi, saveFlow, attachFlow };
+  return { onAction, registerUi, saveFlow, attachFlow };
 }

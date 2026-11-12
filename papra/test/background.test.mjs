@@ -160,7 +160,7 @@ describe('saving an attachment', () => {
     expect(fetched(api).filter((r) => r.includes('custom-properties'))).toEqual([]);
   });
 
-  it('links the saved document in Papra from a notification, and opens it on a click', async () => {
+  it('links the saved document in Papra from the notification after saving', async () => {
     const api = setup({ notify: () => undefined });
     const bg = createBackground(api);
     await bg.onAction(click);
@@ -171,10 +171,6 @@ describe('saving an attachment', () => {
       action: { label: 'Open in Papra', url: `${SERVER}/organizations/org_a/documents/doc_1` },
     });
     expect(toasts(api, 'success')).toEqual([]);
-    await bg.onNotificationClick({ tag: 'doc-doc_1' });
-    expect(api.calls('ui.openExternalUrl')[0].args).toEqual([`${SERVER}/organizations/org_a/documents/doc_1`]);
-    await bg.onNotificationClick({ tag: 'other' });
-    expect(api.calls('ui.openExternalUrl')).toHaveLength(1);
   });
 
   it('says in the notification\'s title when there are notes', async () => {
