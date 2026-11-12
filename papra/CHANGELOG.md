@@ -5,6 +5,10 @@
 ### Added
 - After saving, the message has Open in Papra, which opens the new document in Papra to change it there. The message is a notification, so the plugin asks for the permission ui:notifications.
 
+### Fixed
+- Date properties can be set: the date field showed no picker and couldn't be changed in Chrome or Firefox; it is now day, month and year lists with Today.
+- Default properties whose property was deleted in Papra, and that no organisation has any more, are removed from the defaults, and the user is told.
+
 ### Changed
 - Save to Papra says when the API key can't set properties and what to do, instead of leaving them out without a word; Settings > Papra says how to connect a key that can.
 

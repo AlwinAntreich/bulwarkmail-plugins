@@ -188,6 +188,16 @@ the controls, `DefaultProperties.jsx` the defaults in Settings.
   organisation lacks goes into `missingProperties`, shown in the dialog
   and the toast. A linked document can't be a default; a Papra user
   default is "me".
+- **Dates** are chosen from day, month and year lists (`DateField.jsx`),
+  with Today and Clear. A native date field doesn't work in the plugin's
+  sandboxed frame: Chrome refuses to open its picker from a cross-origin
+  frame (`showPicker()`), and users found the field couldn't be changed in
+  Chrome or Firefox.
+- **Defaults of deleted properties go.** Settings, once every organisation
+  answered, removes defaults whose property no organisation has any more
+  (`stillOffered`) and says so; when one organisation can't be asked,
+  nothing is removed. A save that left a default out checks the same
+  (`pruneDefaults`) and names what it removed in its message.
 - **Me:** Papra doesn't tell an API key whose it is, and doesn't let it list
   members. The creator of the user's first upload (`createdBy`) is kept as
   `papraUser`; other users come from Papra user values on the latest 100
