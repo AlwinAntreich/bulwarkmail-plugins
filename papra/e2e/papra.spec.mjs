@@ -291,23 +291,18 @@ test.describe('papra plugin', () => {
       const dialog = page.frameLocator(SLOT).last();
       await dialog.getByRole('combobox').first().selectOption(SECRETS.organizations.Alice);
       await dialog.getByRole('tab', { name: /^Properties/ }).click();
-      await expect(dialog.getByRole('button', { name: 'Category: Private' })).toBeVisible();
+      // The defaults are rows, changed in place.
+      await expect(dialog.getByRole('combobox', { name: 'Category' })).toHaveValue(/.+/);
       // The document belongs to someone else: change the owner for this save.
-      await dialog.getByRole('button', { name: 'Owner: Alwin Antreich' }).click();
-      await dialog.getByLabel('Owner', { exact: true }).fill('Agata');
-      await dialog.getByRole('button', { name: 'Done' }).click();
-      await dialog.getByRole('button', { name: 'Add property' }).click();
-      await dialog.getByRole('button', { name: 'Paid', exact: true }).click();
-      await dialog.getByRole('button', { name: 'Done' }).click();
+      await dialog.getByRole('textbox', { name: 'Owner' }).fill('Agata');
+      await dialog.getByLabel('Add property').selectOption({ label: 'Paid (yes/no)' });
       // A date from day, month and year lists: a date field's picker doesn't open in the plugin's frame.
-      await dialog.getByRole('button', { name: 'Add property' }).click();
-      await dialog.getByRole('button', { name: 'Due', exact: true }).click();
+      await dialog.getByLabel('Add property').selectOption({ label: 'Due (date)' });
       await dialog.getByLabel('Due: day').selectOption('1');
       await dialog.getByLabel('Due: month').selectOption('12');
       await dialog.getByLabel('Due: year').selectOption('2026');
-      await dialog.getByRole('button', { name: 'Done' }).click();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Due: 2026-12-01; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Due: Dec 1, 2026; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
       const values = Object.fromEntries(doc.customProperties.filter((p) => p.value !== null && p.value !== undefined).map((p) => [p.name, p.value?.name ?? p.value]));
