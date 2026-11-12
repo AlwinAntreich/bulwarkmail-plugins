@@ -299,12 +299,20 @@ test.describe('papra plugin', () => {
       await dialog.getByRole('button', { name: 'Add property' }).click();
       await dialog.getByRole('button', { name: 'Paid', exact: true }).click();
       await dialog.getByRole('button', { name: 'Done' }).click();
+      // A date from day, month and year lists: a date field's picker doesn't open in the plugin's frame.
+      await dialog.getByRole('button', { name: 'Add property' }).click();
+      await dialog.getByRole('button', { name: 'Due', exact: true }).click();
+      await dialog.getByLabel('Due: day').selectOption('1');
+      await dialog.getByLabel('Due: month').selectOption('12');
+      await dialog.getByLabel('Due: year').selectOption('2026');
+      await dialog.getByRole('button', { name: 'Done' }).click();
       await footerButton(page, 'Save').click();
-      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
+      await expect(toast(page, `Saved ${run}.pdf to Alice in Papra (tags: Bulwark; Category: Private; Due: 2026-12-01; Owner: Agata; Paid: yes).`)).toBeVisible({ timeout: 60_000 });
 
       const [doc] = await findDocs('Alice', run);
       const values = Object.fromEntries(doc.customProperties.filter((p) => p.value !== null && p.value !== undefined).map((p) => [p.name, p.value?.name ?? p.value]));
       expect(values).toMatchObject({ Owner: 'Agata', Category: 'Private', Paid: true });
+      expect(values.Due).toMatch(/^2026-12-01/);
     } finally {
       for (const doc of await findDocs('Alice', run).catch(() => [])) await deleteDoc('Alice', doc.id).catch(() => {});
       const settings = await settingsPage().catch(() => null);
